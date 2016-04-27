@@ -1,0 +1,1 @@
+% Outputs vehicle position and orientation over all time steps
