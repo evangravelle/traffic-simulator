@@ -8,7 +8,8 @@ axis([-10,10,-10,10])
 hold on;
 whitebg([0 .5 .6])
 
-%Intersection Parameters
+%Intersection Parameters - EVAN what are these? More descriptive names if
+%possible, also I have initialized some stuff in Initialize.m
 a1 = 1.5; b1 = 10;
 a2 = -10; b2 = -1.5;
 center = [0,0];
