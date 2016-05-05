@@ -2,7 +2,7 @@ function[f] = makeIntersection(center, laneWidth, interRange, i, phase)
 %% If no input arguments are given
 if nargin < 1
     interRange = 200; %Intersection Range
-    x = 50; y = 100;
+    center = [50,100];
     laneWidth = 12; %width of each lane 
     i = 1;
 end
@@ -26,6 +26,9 @@ laneRange = [3*laneWidth, interRange]; %Sets where lane Starts and Ends
 centerRange = [0,0]; % Point at which center starts and ends before adding x and y
 
 %% 12-OClock Lanes
+% plotting a line using corrdinates from x values (first arg) and y values
+% (second arg) for plot, the addition of x and y allow us to center the 
+% axis wherever we want it
 road1Left =     plot(centerRange + 3*laneWidth + x,  laneRange + y);
 lane11Left =    plot(centerRange + 2*laneWidth + x, laneRange + y, '--');
 lane12Left =    plot(centerRange + 1*laneWidth + x, laneRange + y, '--');
@@ -35,6 +38,9 @@ lane12Right =   plot(centerRange - 2*laneWidth + x, laneRange + y, '--');
 road1Right =    plot(centerRange - 3*laneWidth + x, laneRange + y);
 
 %% 3-OClock Lanes
+% Repreats steps above for 3-oclock lanes. However this can possibly she 
+% shortened using a for loop, same goes for 6 and 9 oclock lanes that
+% follow
 road2Left =     plot(laneRange + x, centerRange + 3*laneWidth + y);
 lane21Left =    plot(laneRange + x, centerRange + 2*laneWidth + y, '--');
 lane22Left =    plot(laneRange + x, centerRange + 1*laneWidth + y, '--');
