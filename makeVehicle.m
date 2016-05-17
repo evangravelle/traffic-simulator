@@ -1,4 +1,4 @@
-function[vehicle, h] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, empty)
+function[vehicle] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, empty)
     % Initializes vehicle with zero values everywhere
     % i is the the vehicle number
     % vehicle is the structer passed in and also passed out
@@ -49,6 +49,5 @@ function[vehicle, h] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, emp
                 inters.road(road).lane(lane).center];
             vehicle(i).orientation = 0;%pi*rand();
         end
-        vehicle(i).figure = drawVehicle(vehicle, i);
     end 
 end
