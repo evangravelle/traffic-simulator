@@ -1,40 +1,40 @@
-function[road,lane] = poissonSpawn(lambda, max_num_vehicles, num_roads, num_lanes)
-%Set average number of cars that appear at once
-%lambda = 2;
-%generate a random number
-R = poissrnd(lambda);
-%check if value is too large, if so change again
-while R > max_num_vehicles;
-    R = poissrnd(lambda);
+function[road,lane] = poissonSpawn(lambda, num_roads, num_lanes)
+% Example: [road,lane] = poissonSpawn(2, 4, 3)
+% lambda = average number of cars appearing at any given time
+% num_roads = number of roads at an intersection (this should be 4)
+% num_lanes = number of lanes in each road in each direction (should be 3)
+
+% roadLanes Matrix
+allLanes = [1, 2, 3];
+roadLanes{1} = allLanes;
+roadLanes{2} = allLanes;
+roadLanes{3} = allLanes;
+roadLanes{4} = allLanes;
+
+% generate a random number from the Poisson Distribution with param lambda
+num_vehicles = poissrnd(lambda);
+
+% max number of vehicle has upper bound by number of lanes
+max_num_vehicles = num_roads*num_lanes;
+
+% check if produced too many vehicles
+while num_vehicles > max_num_vehicles;
+    num_vehicles = poissrnd(lambda); % if so change again
 end
-k = 0;
-%check to see if any cars are made
-road = zeros(1,R);
-lane = zeros(1,R);
-if R > 0
-    for i = 1:R
-        %choose a road randomly
-        road(i) = randi([1,num_roads]);
-        %choose a lane randomly
-        lane(i) = randi([1,num_lanes]);
-        %check if lane is already taken
-        if i > 1
-            %first check if road has been selected
-            disp('before if')
-            if any(road(i) == road(1:end-1))
-                %return the road number (key) if so
-                key = find(road(i) == road(1:end-1));
-                %use the road number to make sure we select a distinct lane
-                disp('before while')
-                while lane(i) == lane(key) || k < 10 %repeat if necessary
-                    disp('in while')
-                    lane(i) = randi([1,3]);
-                    k = k + 1;
-                end
-            end
-        end
+
+if num_vehicles > 0 % check to see if any cars are made if so ...
+    road = randi([1,num_roads],1,num_vehicles); % make random vector of roads
+    lane = randi([1,num_lanes],1,num_vehicles); % vector of lanes, one entry for each vehicle
+    
+    for j = 1:num_vehicles
+        k = road(j);
+        lane_index = randi([1,length(roadLanes{k})]);
+        lane(j) = roadLanes{k}(lane_index);
+        roadLanes{k}(lane_index) = [];
     end
-end
+else
+    road = nan;
+    lane = nan;
 end
 
 
