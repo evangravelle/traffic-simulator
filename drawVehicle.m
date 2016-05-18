@@ -23,6 +23,6 @@ corners(4,2) = current_vehicle.position(2) + ...
 handle = fill(corners(:,1),corners(:,2),current_vehicle.color);
 axis equal
 axis off
-title(sprintf('t = %d',t))
+title(sprintf('t = %3.f',t))
 
 end

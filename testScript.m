@@ -18,8 +18,8 @@ num_roads = 4;
 
 % initialize simulation parameters
 t = 0;
-delta_t = 1;
-num_iter = 10;
+delta_t = .1;
+num_iter = 100;
 
 % lane properties
 
@@ -38,11 +38,11 @@ time_enter = 0;
 vehicle(i).figure = drawVehicle(vehicle(i), t);
 
 % run simulation 
-for t = 1:delta_t:num_iter*delta_t
+for t = delta_t*(1:num_iter)
     vehicle = runDynamics(inters, vehicle, delta_t);
     for i = 1:length(vehicle)
         delete(vehicle(i).figure);
         vehicle(i).figure = drawVehicle(vehicle(i), t);
     end
-    pause(0.5)
+    pause(delta_t)
 end

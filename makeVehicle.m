@@ -20,15 +20,15 @@ function[vehicle] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, time_e
         vehicle(i).time_leave = 0;
     % Initializes vehicles with values
     else
-        vehicle(i).length = 8;
-        vehicle(i).width = 4;
+        vehicle(i).length = 4.8;
+        vehicle(i).width = 2;
         vehicle(i).dist_in_lane = 0;
         vehicle(i).vehicle_ahead = [];
         vehicle(i).velocity = 1;
         vehicle(i).color = rand(1,3);
         vehicle(i).max_velocity = 30;
-        vehicle(i).max_accel = 1;
-        vehicle(i).min_accel = -2;
+        vehicle(i).max_accel = 1.8;
+        vehicle(i).min_accel = -3;
         vehicle(i).origin = 0;
         vehicle(i).destination = 0;
         vehicle(i).path = [vehicle(i).origin vehicle(i).destination];
