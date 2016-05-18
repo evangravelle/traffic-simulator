@@ -1,26 +1,28 @@
-function[handle] = drawVehicle(vehicle, i)
-        
-            % Finds corners of polygon
-    hyp = norm([vehicle(i).length/2 vehicle(i).width/2],2);
-    theta = atan2(vehicle(i).width,vehicle(i).length);
-    corners(1,1) = vehicle(i).position(1) + ...
-      hyp*cos(vehicle(i).orientation + theta);
-    corners(1,2) = vehicle(i).position(2) + ...
-      hyp*sin(vehicle(i).orientation + theta);
-    corners(2,1) = vehicle(i).position(1) + ...
-      hyp*cos(vehicle(i).orientation + pi - theta);
-    corners(2,2) = vehicle(i).position(2) + ...
-      hyp*sin(vehicle(i).orientation + pi - theta);
-    corners(3,1) = vehicle(i).position(1) + ...
-      hyp*cos(vehicle(i).orientation + pi + theta);
-    corners(3,2) = vehicle(i).position(2) + ...
-      hyp*sin(vehicle(i).orientation + pi + theta);
-    corners(4,1) = vehicle(i).position(1) + ...
-      hyp*cos(vehicle(i).orientation + 2*pi - theta);
-    corners(4,2) = vehicle(i).position(2) + ...
-      hyp*sin(vehicle(i).orientation + 2*pi - theta);
-  
-    handle = fill(corners(:,1),corners(:,2),vehicle(i).color);
-    axis equal
-    axis off
+function[handle] = drawVehicle(current_vehicle, t)
+
+% Finds corners of polygon
+hyp = norm([current_vehicle.length/2 current_vehicle.width/2],2);
+theta = atan2(current_vehicle.width,current_vehicle.length);
+corners(1,1) = current_vehicle.position(1) + ...
+  hyp*cos(current_vehicle.orientation + theta);
+corners(1,2) = current_vehicle.position(2) + ...
+  hyp*sin(current_vehicle.orientation + theta);
+corners(2,1) = current_vehicle.position(1) + ...
+  hyp*cos(current_vehicle.orientation + pi - theta);
+corners(2,2) = current_vehicle.position(2) + ...
+  hyp*sin(current_vehicle.orientation + pi - theta);
+corners(3,1) = current_vehicle.position(1) + ...
+  hyp*cos(current_vehicle.orientation + pi + theta);
+corners(3,2) = current_vehicle.position(2) + ...
+  hyp*sin(current_vehicle.orientation + pi + theta);
+corners(4,1) = current_vehicle.position(1) + ...
+  hyp*cos(current_vehicle.orientation + 2*pi - theta);
+corners(4,2) = current_vehicle.position(2) + ...
+  hyp*sin(current_vehicle.orientation + 2*pi - theta);
+
+handle = fill(corners(:,1),corners(:,2),current_vehicle.color);
+axis equal
+axis off
+title(sprintf('t = %d',t))
+
 end

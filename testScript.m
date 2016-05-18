@@ -1,3 +1,5 @@
+clear; clc; close all
+
 % create default Intersection
 [inters] = makeIntersection2(); 
 
@@ -14,17 +16,33 @@ vehicle = struct;
 num_lanes = 3;
 num_roads = 4;
 
+% initialize simulation parameters
+t = 0;
+delta_t = 1;
+num_iter = 10;
+
+% lane properties
+
+
 % first vehicle
 i = 1; % vehicle number
+time_enter = 0;
 % here false stands for 'not empty'
-[vehicle] = makeVehicle(inters,vehicle, i, num_lanes, num_roads, false);
-vehicle(i).figure = drawVehicle(vehicle, i);
+[vehicle] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, time_enter, false);
+vehicle(i).figure = drawVehicle(vehicle(i), t);
 
 % second vehicle
 i = 2; % vehicle number
-[vehicle] = makeVehicle(inters,vehicle, i, num_lanes, num_roads, false);
-vehicle(i).figure = drawVehicle(vehicle, i);
+time_enter = 0;
+[vehicle] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, time_enter, false);
+vehicle(i).figure = drawVehicle(vehicle(i), t);
 
-
-
-
+% run simulation 
+for t = 1:delta_t:num_iter*delta_t
+    vehicle = runDynamics(inters, vehicle, delta_t);
+    for i = 1:length(vehicle)
+        delete(vehicle(i).figure);
+        vehicle(i).figure = drawVehicle(vehicle(i), t);
+    end
+    pause(0.5)
+end

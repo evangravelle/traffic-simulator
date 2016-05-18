@@ -10,6 +10,4 @@ for t = 1:num_iter
               Rotate2d(lane_dir(vehicle(i).lane))*[1 0]'*vehicle(i).dist_in_lane;
         end
     end
-    
-    
 end
