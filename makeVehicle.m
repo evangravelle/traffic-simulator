@@ -1,4 +1,4 @@
-function[vehicle] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, time_enter, empty)
+function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, empty)
     % Initializes vehicle with zero values everywhere
     % i is the the vehicle number
     % vehicle is the structer passed in and also passed out

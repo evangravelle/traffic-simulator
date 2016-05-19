@@ -1,5 +1,33 @@
-
 clear; clc; close all
+
+% %% Julio's Test
+% 
+% % create default Intersection
+% [inters2] = makeIntersection2(); 
+% 
+% % draw Intersection
+% [FIG2] = drawIntersection(inters2);
+% 
+% % hold on to figure, future plots on same figure
+% hold on;
+% 
+% % declare vehicle structure
+% vehicle2 = struct;
+% 
+% % Spawn Vehicles
+% lambda = 2; road = 4; lane = 3;
+% [road,lane] = poissonSpawn(lambda, road, lane);
+% time_enter = 0;
+% t = 0;
+% if isnan(road) == 0
+%     for i = 1:length(road)
+%         [vehicle2] = makeVehicle(inters2,vehicle2, i, lane(i), road(i), time_enter, false);
+%         vehicle2(i).figure = drawVehicle(vehicle2(i), t);
+%     end
+% end
+
+
+%% Evans Test
 
 % create default Intersection
 [inters] = makeIntersection2(); 
@@ -13,58 +41,26 @@ hold on;
 % declare vehicle structure
 vehicle = struct;
 
-% Spawn Vehicles
-lambda = 2; num_roads = 4; num_lanes = 3;
-[road,lane] = poissonSpawn(lambda, num_roads, num_lanes);
-if isnan(road) == 0
-    for i = 1:length(road)
-        [vehicle] = makeVehicle(inters,vehicle, i, lane(i), road(i), false);
-        vehicle(i).figure = drawVehicle(vehicle, i);
-    end
-end
-
-
-
-
-||||||| merged common ancestors
-% make r roads and 6 lanes (in each direction) per road
-num_lanes = 3;
-num_roads = 4;
-
-% first vehicle
-i = 1; % vehicle number
-% here false stands for 'not empty'
-[vehicle] = makeVehicle(inters,vehicle, i, num_lanes, num_roads, false);
-vehicle(i).figure = drawVehicle(vehicle, i);
-
-% second vehicle
-i = 2; % vehicle number
-[vehicle] = makeVehicle(inters,vehicle, i, num_lanes, num_roads, false);
-vehicle(i).figure = drawVehicle(vehicle, i);
-
-% make r roads and 6 lanes (in each direction) per road
-num_lanes = 3;
-num_roads = 4;
-
 % initialize simulation parameters
 t = 0;
 delta_t = .1;
 num_iter = 100;
 
-% lane properties
-
-
 % first vehicle
 i = 1; % vehicle number
+road = 4; % vehicle road
+lane = 3; % vehicle lane
 time_enter = 0;
 % here false stands for 'not empty'
-[vehicle] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, time_enter, false);
+[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
 vehicle(i).figure = drawVehicle(vehicle(i), t);
 
 % second vehicle
 i = 2; % vehicle number
+road = 1; % vehicle road
+lane = 2; % vehicle lane
 time_enter = 0;
-[vehicle] = makeVehicle(inters, vehicle, i, num_lanes, num_roads, time_enter, false);
+[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
 vehicle(i).figure = drawVehicle(vehicle(i), t);
 
 % run simulation 
