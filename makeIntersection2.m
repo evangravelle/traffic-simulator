@@ -6,7 +6,7 @@ num_intersections = 1; %number of intersections
 for k = 1:num_intersections
     inters(k).center = [0,0];
     for j = 1:4 % 4 roads
-        inters(k).road(j).lane_width = 12; %width of each lane at intersection
+        inters(k).road(j).lane_width = 3; %width of each lane at intersection
         inters(k).road(j).length = 100; %length of each road
         inters(k).road(j).num_lanes = 3; %number of lanes in each direction
         inters(k).road(j).width = 2*(inters(k).road(j).lane_width)*(inters(k).road(j).num_lanes);
@@ -24,14 +24,14 @@ for k = 1:num_intersections
                 + inters(k).road(j).length;
             %Define incoming lanes
             for i = 1:inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'incoming';
+                inters(k).road(j).lane(i).direction = 3*pi/2;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     - inters(k).road(j).width/2 + i*inters(k).road(j).lane_width ...
                     - inters(k).road(j).lane_width/2;
             end
             %Define outgoing lanes
             for i = inters(k).road(j).num_lanes+1:2*inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'outgoing';
+                inters(k).road(j).lane(i).direction = pi/2;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     - inters(k).road(j).width/2 + i*inters(k).road(j).lane_width ...
                     - inters(k).road(j).lane_width/2;
@@ -49,14 +49,14 @@ for k = 1:num_intersections
                 + inters(k).road(j).length;
             %Define incoming lanes
             for i = 1:inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'incoming';
+                inters(k).road(j).lane(i).direction = pi;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     + inters(k).road(j).width/2 - i*inters(k).road(j).lane_width ...
                     + inters(k).road(j).lane_width/2;
             end
             %Define outgoing lanes
             for i = inters(k).road(j).num_lanes+1:2*inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'outgoing';
+                inters(k).road(j).lane(i).direction = 0;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     + inters(k).road(j).width/2 - i*inters(k).road(j).lane_width ...
                     + inters(k).road(j).lane_width/2;
@@ -73,14 +73,14 @@ for k = 1:num_intersections
                 - inters(k).road(j).length;
             %Define incoming lanes
             for i = 1:inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'incoming';
+                inters(k).road(j).lane(i).direction = pi/2;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     + inters(k).road(j).width/2 - i*inters(k).road(j).lane_width ...
                     + inters(k).road(j).lane_width/2;
             end
             %Define outgoing lanes
             for i = inters(k).road(j).num_lanes+1:2*inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'outgoing';
+                inters(k).road(j).lane(i).direction = 3*pi/2;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     + inters(k).road(j).width/2 - i*inters(k).road(j).lane_width ...
                     + inters(k).road(j).lane_width/2;
@@ -97,14 +97,14 @@ for k = 1:num_intersections
                 - inters(k).road(j).length;
             %Define incoming lanes
             for i = 1:inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'incoming';
+                inters(k).road(j).lane(i).direction = 0;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     - inters(k).road(j).width/2 + i*inters(k).road(j).lane_width ...
                     - inters(k).road(j).lane_width/2;
             end
             %Define outgoing lanes
             for i = inters(k).road(j).num_lanes:2*inters(k).road(j).num_lanes
-                inters(k).road(j).lane(i).direction = 'outgoing';
+                inters(k).road(j).lane(i).direction = pi;
                 inters(k).road(j).lane(i).center = inters(k).road(j).center ...
                     - inters(k).road(j).width/2 + i*inters(k).road(j).lane_width ...
                     - inters(k).road(j).lane_width/2;
