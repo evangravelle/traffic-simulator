@@ -63,16 +63,21 @@ num_iter = 100;
 % [vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
 % vehicle(i).figure = drawVehicle(vehicle(i), t);
 
-% Spawn Vehicles  !!!USE THIS INSTEAD IF YOU WANT TO SPAWN RANDOMLY!!!
-lambda = 2; road = 4; lane = 3;
-[road,lane] = poissonSpawn(lambda, road, lane);
+%--------------------------------------------------------------------------
+% SPAWN VEHICLES  !!!USE THIS INSTEAD IF YOU WANT TO SPAWN RANDOMLY!!!
+lambda = 2; % spawn average rate
+num_roads = 4; % number of roads
+num_lanes = 3; % number of 
+% radomly choose roads and lanes (generall returns a vector)
+[road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
 time_enter = 0;
-if isnan(road) == 0
-    for i = 1:length(road)
-        [vehicle] = makeVehicle(inters,vehicle, i, lane(i), road(i), time_enter, false);
-        vehicle(i).figure = drawVehicle(vehicle(i), t);
-    end
-end
+% make and draw all Vehicles according to chosen roads and lanes
+[vehicle]= makeAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
+% END OF SPAWNING
+%--------------------------------------------------------------------------
+
+%KEEP IN MIND THE REST OF THIS CODE MAY RETURN AN ERROR IF NO VEHICLES  WERE SPAWNED
+%(if [road, lane] = NaN);
 
 % run simulation 
 for t = delta_t*(1:num_iter)
