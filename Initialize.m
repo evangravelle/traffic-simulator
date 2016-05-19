@@ -3,6 +3,7 @@
 % Lanes are numbered CCW starting from incoming westbound lanes
 
 delta_t = 1; % seconds
+num_vehicles = 0; 
 max_num_vehicles = 5;
 num_intersections = 1;
 num_lanes = 3;
@@ -25,35 +26,16 @@ lane_dir = kron([pi .5*pi 1.5*pi pi 0 1.5*pi 0.5*pi 0],ones(1,num_lanes));
 paths = [1 18;2 11;3 4;7 24;8 17;9 10;13 6;14 23;15 16;19 12;20 5;21 22];
 
 % Initializes a dummy vehicle for testing and establishing the array
-vehicle(max_num_vehicles+1).length = 0;
-vehicle(max_num_vehicles+1).width = 0;
-vehicle(max_num_vehicles+1).lane = 0;
-vehicle(max_num_vehicles+1).dist_in_lane = 0;
-vehicle(max_num_vehicles+1).orientation = 0;
-vehicle(max_num_vehicles+1).velocity = 0;
-vehicle(max_num_vehicles+1).color = [0 0 0];
-vehicle(max_num_vehicles+1).max_accel = 0;
-vehicle(max_num_vehicles+1).min_accel = 0;
-vehicle(max_num_vehicles+1).origin = 0;
-vehicle(max_num_vehicles+1).destination = 0;
-vehicle(max_num_vehicles+1).path = ...
-  [vehicle(max_num_vehicles+1).origin vehicle(max_num_vehicles+1).destination];
-vehicle(max_num_vehicles+1).time_enter = 0;
-vehicle(max_num_vehicles+1).time_leave = 0;
+vehicle = struct; %declares a structure for vehicles
+vehicle = makeVehicles(vehicle,max_num_vehicles+1,incoming_lanes, ...
+    num_incoming_lanes, true);
 
-for i = 1:max_num_vehicles
-    vehicle(i).length = 4;
-    vehicle(i).width = 2.5;
-    vehicle(i).lane = incoming_lanes(randi(num_incoming_lanes));
-    vehicle(i).dist_in_lane = 0;
-    vehicle(i).orientation = pi*rand();
-    vehicle(i).velocity = 1;
-    vehicle(i).color = rand(1,3);
-    vehicle(i).max_accel = 1;
-    vehicle(i).min_accel = -2;
-    vehicle(i).origin = 0;
-    vehicle(i).destination = 0;
-    vehicle(i).path = [vehicle(i).origin vehicle(i).destination];
-    vehicle(i).time_enter = -1;
-    vehicle(i).time_leave = -1;
+% Initilizes max_num_vehicles vehicles
+while num_vehicles < max_num_vehicles %stop if max_num_vehicles is reached
+    num_spawned = randi([0 num_lanes]); %spawn a number of vehicles randomly
+    for i = 1:num_spawned %for every spawned vehcile, initialize
+        vehicle = makeVehicles(vehicle,num_vehicles + i,incoming_lanes, ...
+            num_incoming_lanes, false);
+    end
+    num_vehicles = num_vehicles + num_spawned;
 end

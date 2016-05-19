@@ -1,3 +1,4 @@
+clear; clc;
 % create default Intersection
 [inters] = makeIntersection2(); 
 
@@ -10,20 +11,15 @@ hold on;
 % declare vehicle structure
 vehicle = struct;
 
-% make r roads and 6 lanes (in each direction) per road
-num_lanes = 3;
-num_roads = 4;
-
-% first vehicle
-i = 1; % vehicle number
-% here false stands for 'not empty'
-[vehicle] = makeVehicle(inters,vehicle, i, num_lanes, num_roads, false);
-vehicle(i).figure = drawVehicle(vehicle, i);
-
-% second vehicle
-i = 2; % vehicle number
-[vehicle] = makeVehicle(inters,vehicle, i, num_lanes, num_roads, false);
-vehicle(i).figure = drawVehicle(vehicle, i);
+% Spawn Vehicles
+lambda = 2; num_roads = 4; num_lanes = 3;
+[road,lane] = poissonSpawn(lambda, num_roads, num_lanes);
+if isnan(road) == 0
+    for i = 1:length(road)
+        [vehicle] = makeVehicle(inters,vehicle, i, lane(i), road(i), false);
+        vehicle(i).figure = drawVehicle(vehicle, i);
+    end
+end
 
 
 
