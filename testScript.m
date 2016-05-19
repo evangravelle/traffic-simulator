@@ -46,22 +46,33 @@ t = 0;
 delta_t = .1;
 num_iter = 100;
 
-% first vehicle
-i = 1; % vehicle number
-road = 4; % vehicle road
-lane = 3; % vehicle lane
-time_enter = 0;
-% here false stands for 'not empty'
-[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
-vehicle(i).figure = drawVehicle(vehicle(i), t);
+% % first vehicle
+% i = 1; % vehicle number
+% road = 4; % vehicle road
+% lane = 3; % vehicle lane
+% time_enter = 0;
+% % here false stands for 'not empty'
+% [vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
+% vehicle(i).figure = drawVehicle(vehicle(i), t);
+% 
+% % second vehicle
+% i = 2; % vehicle number
+% road = 1; % vehicle road
+% lane = 2; % vehicle lane
+% time_enter = 0;
+% [vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
+% vehicle(i).figure = drawVehicle(vehicle(i), t);
 
-% second vehicle
-i = 2; % vehicle number
-road = 1; % vehicle road
-lane = 2; % vehicle lane
+% Spawn Vehicles  !!!USE THIS INSTEAD IF YOU WANT TO SPAWN RANDOMLY!!!
+lambda = 2; road = 4; lane = 3;
+[road,lane] = poissonSpawn(lambda, road, lane);
 time_enter = 0;
-[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
-vehicle(i).figure = drawVehicle(vehicle(i), t);
+if isnan(road) == 0
+    for i = 1:length(road)
+        [vehicle] = makeVehicle(inters,vehicle, i, lane(i), road(i), time_enter, false);
+        vehicle(i).figure = drawVehicle(vehicle(i), t);
+    end
+end
 
 % run simulation 
 for t = delta_t*(1:num_iter)
