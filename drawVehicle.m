@@ -1,4 +1,4 @@
-function[handle] = drawVehicle(current_vehicle, t)
+function[handle] = drawVehicle(current_vehicle)
 
 % Finds corners of polygon
 hyp = norm([current_vehicle.length/2 current_vehicle.width/2],2);
@@ -23,6 +23,5 @@ corners(4,2) = current_vehicle.position(2) + ...
 handle = fill(corners(:,1),corners(:,2),current_vehicle.color);
 axis equal
 axis off
-title(sprintf('t = %3.f',t))
 
 end

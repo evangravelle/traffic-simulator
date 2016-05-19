@@ -12,12 +12,16 @@ function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, empt
         vehicle(i).velocity = 0;
         vehicle(i).color = [0 0 0];
         vehicle(i).max_accel = 0;
+        vehicle(i).slow_down = 0;
         vehicle(i).min_accel = 0;
         vehicle(i).origin = 0;
         vehicle(i).destination = 0;
         vehicle(i).path = [vehicle(i).origin vehicle(i).destination];
         vehicle(i).time_enter = 0;
         vehicle(i).time_leave = 0;
+        vehicle(i).lane = 0;
+        vehicle(i).road = 0;
+        vehicle(i).inters = 0;
     % Initializes vehicles with values
     else
         vehicle(i).length = 4.8;
@@ -26,8 +30,9 @@ function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, empt
         vehicle(i).vehicle_ahead = [];
         vehicle(i).velocity = 1;
         vehicle(i).color = rand(1,3);
-        vehicle(i).max_velocity = 30;
+        vehicle(i).max_velocity = 10;
         vehicle(i).max_accel = 1.8;
+        vehicle(i).slow_down = -1;
         vehicle(i).min_accel = -3;
         vehicle(i).origin = 0;
         vehicle(i).destination = 0;
@@ -36,6 +41,7 @@ function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, empt
         vehicle(i).time_leave = -1;
         vehicle(i).lane = lane;
         vehicle(i).road = road;
+        vehicle(i).inters = 1;
         if strcmp(inters.road(road).orientation,'vertical') == 1
             vehicle(i).position = [inters.road(road).lane(lane).center,...
                 inters.road(road).ending_point];

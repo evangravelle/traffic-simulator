@@ -44,7 +44,8 @@ vehicle = struct;
 % initialize simulation parameters
 t = 0;
 delta_t = .1;
-num_iter = 100;
+num_iter = 200;
+phase_length = 20;
 
 % % first vehicle
 % i = 1; % vehicle number
@@ -67,8 +68,8 @@ num_iter = 100;
 % SPAWN VEHICLES  !!!USE THIS INSTEAD IF YOU WANT TO SPAWN RANDOMLY!!!
 lambda = 2; % spawn average rate
 num_roads = 4; % number of roads
-num_lanes = 3; % number of 
-% radomly choose roads and lanes (generall returns a vector)
+num_lanes = 3; % number of lanes
+% randomly choose roads and lanes (generally returns a vector)
 [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
@@ -81,11 +82,32 @@ time_enter = 0;
 
 % run simulation 
 for t = delta_t*(1:num_iter)
-    vehicle = runDynamics(inters, vehicle, delta_t);
-    for i = 1:length(vehicle)
-        delete(vehicle(i).figure);
-        vehicle(i).figure = drawVehicle(vehicle(i), t);
+    
+    % if vehicle is nonempty, run dynamics
+    if ~isempty(fieldnames(vehicle))
+        vehicle = runDynamics(inters, vehicle, t, delta_t);
+        disp(vehicle(1).velocity)
+        for i = 1:length(vehicle)
+            delete(vehicle(i).figure);
+            if (vehicle(i).time_leave == -1 && vehicle(i).time_enter ~= -1)
+                vehicle(i).figure = drawVehicle(vehicle(i));
+            end
+        end
+        title(sprintf('t = %3.f',t))
     end
+    
+    if mod(t,phase_length) < phase_length/2
+        inters(1).green = [1 3];
+    else
+        inters(1).green = [2 4];
+    end
+    
+    % Spawn vehicles at each time step
+    % [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
+    % time_enter = 0;
+    % make and draw all Vehicles according to chosen roads and lanes
+    % [vehicle]= makeAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
+    
     pause(delta_t)
 end
 
