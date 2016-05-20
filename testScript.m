@@ -77,7 +77,6 @@ time_enter = 0;
 % END OF SPAWNING
 %--------------------------------------------------------------------------
 
-%KEEP IN MIND THE REST OF THIS CODE MAY RETURN AN ERROR IF NO VEHICLES  WERE SPAWNED
 %(if [road, lane] = NaN);
 
 % run simulation 

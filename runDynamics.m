@@ -11,6 +11,8 @@ for i = 1:length(vehicle)
         vehicle(i).dist_in_lane = vehicle(i).dist_in_lane + vehicle(i).velocity*delta_t;
         
         % if the vehicle has fully traversed the current road
+        i
+        current_road
         if vehicle(i).dist_in_lane > inters.road(current_road).length
             
             lane_temp = 2*inters.road(1).num_lanes*(current_road-1) + current_lane;
@@ -18,7 +20,18 @@ for i = 1:length(vehicle)
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inters.road(current_road).length;
                 lane_temp_2 = inters(vehicle(i).inters).connections(lane_temp);
                 vehicle(i).lane = mod(lane_temp_2-1,2*inters.road(1).num_lanes)+1;
-                vehicle(i).road = floor(lane_temp_2/(2*inters.road(1).num_lanes))+1;
+                vehicle(i).road = floor((lane_temp_2-1)/(2*inters.road(1).num_lanes))+1;
+                
+                if strcmp(inters(current_inters).road(vehicle(i).road).orientation,'vertical') == 1
+                    vehicle(i).starting_point = [inters(current_inters).road(vehicle(i).road).lane(vehicle(i).lane).center, ...
+                      inters(current_inters).road(vehicle(i).road).starting_point];
+                    vehicle(i).orientation = pi/2;
+                elseif strcmp(inters(current_inters).road(vehicle(i).road).orientation,'horizontal') == 1
+                    vehicle(i).starting_point = [inters(current_inters).road(vehicle(i).road).starting_point, ...
+                      inters(current_inters).road(vehicle(i).road).lane(vehicle(i).lane).center];
+                    vehicle(i).orientation = 0;
+                end
+
             else
                 vehicle(i).dist_in_lane = 0;
                 vehicle(i).time_leave = t;
@@ -26,14 +39,7 @@ for i = 1:length(vehicle)
         end
         
         % calculates new position
-        if strcmp(inters(current_inters).road(current_road).orientation,'vertical') == 1
-            initial = [inters(current_inters).road(current_road).lane(current_lane).center, ...
-              inters(current_inters).road(current_road).ending_point];
-        elseif strcmp(inters(current_inters).road(current_road).orientation,'horizontal') == 1
-            initial = [inters(current_inters).road(current_road).ending_point, ...
-              inters(current_inters).road(current_road).lane(current_lane).center];
-        end
-        vehicle(i).position = initial + ...
+        vehicle(i).position = vehicle(i).starting_point + ...
           (Rotate2d(inters(current_inters).road(current_road).lane(current_lane).direction)*[1 0]')'*vehicle(i).dist_in_lane;
         
         % calculates proposed velocities, takes minimum of them
