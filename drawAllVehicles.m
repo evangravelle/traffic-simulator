@@ -20,7 +20,7 @@ function[vehicle]=drawAllVehicles(inters, vehicle, road, lane, time, t, false)
         spawned = length(road);
         % make assignments and draw
         for j = 1:spawned
-            [vehicle] = makeVehicle(inters,vehicle, in_que + j, lane(j), road(j), time, false);
+            [vehicle] = makeVehicle(inters,vehicle, (in_que + j), lane(j), road(j), time, false);
             vehicle(in_que+j).figure = drawVehicle(vehicle(in_que+j), t);
         end
     end
