@@ -27,7 +27,7 @@ clear; clc; close all
 % end
 
 
-%% Evans Test
+%% Evan's Test
 
 % create default Intersection
 [inters] = makeIntersection2(); 
@@ -72,7 +72,7 @@ num_lanes = 3; % number of
 [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
-[vehicle]= makeAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
+[vehicle]= drawAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
 % END OF SPAWNING
 %--------------------------------------------------------------------------
 
