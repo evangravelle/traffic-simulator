@@ -21,7 +21,7 @@ clear; clc; close all
 % t = 0;
 % if isnan(road) == 0
 %     for i = 1:length(road)
-%         [vehicle2] = makeVehicle(inters2,vehicle2, i, lane(i), road(i), time_enter, false);
+%         [vehicle2] = makeVehicle(inters2,vehicle2, i, lane(i), road(i), time_enter);
 %         vehicle2(i).figure = drawVehicle(vehicle2(i), t);
 %     end
 % end
@@ -53,16 +53,16 @@ phase_length = 20;
 % lane = 3; % vehicle lane
 % time_enter = 0;
 % % here false stands for 'not empty'
-% [vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
-% vehicle(i).figure = drawVehicle(vehicle(i), t);
+% [vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter);
+% vehicle(i).figure = drawVehicle(vehicle(i));
 % 
 % % second vehicle
 % i = 2; % vehicle number
 % road = 1; % vehicle road
 % lane = 2; % vehicle lane
 % time_enter = 0;
-% [vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, false);
-% vehicle(i).figure = drawVehicle(vehicle(i), t);
+% [vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter);
+% vehicle(i).figure = drawVehicle(vehicle(i));
 
 %--------------------------------------------------------------------------
 % SPAWN VEHICLES  !!!USE THIS INSTEAD IF YOU WANT TO SPAWN RANDOMLY!!!
@@ -85,7 +85,6 @@ for t = delta_t*(1:num_iter)
     % if vehicle is nonempty, run dynamics
     if ~isempty(fieldnames(vehicle))
         vehicle = runDynamics(inters, vehicle, t, delta_t);
-        disp(vehicle(1).velocity)
         for i = 1:length(vehicle)
             delete(vehicle(i).figure);
             if (vehicle(i).time_leave == -1 && vehicle(i).time_enter ~= -1)

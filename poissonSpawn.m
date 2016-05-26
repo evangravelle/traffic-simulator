@@ -12,8 +12,8 @@ roadLanes{3} = allLanes;
 roadLanes{4} = allLanes;
 
 % generate a random number from the Poisson Distribution with param lambda
-num_vehicles = poissrnd(lambda);
-% num_vehicles = randi(2*lambda); % This is to run on Evan's computer
+% num_vehicles = poissrnd(lambda);
+num_vehicles = randi(2*lambda); % This is to run on Evan's computer
 
 % max number of vehicle has upper bound by number of lanes
 max_num_vehicles = num_roads*num_lanes;
