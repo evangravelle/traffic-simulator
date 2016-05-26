@@ -17,9 +17,9 @@ function[vehicle]=drawAllVehicles(inters, vehicle, road, lane, time, t, false)
     % Now assign and draw new vehicles
     if isnan(road) == false
         % number of new Vehicles Spawned
-        spawned = length(road);
+        num_spawned = length(road);
         % make assignments and draw
-        for j = 1:spawned
+        for j = 1:num_spawned
             [vehicle] = makeVehicle(inters,vehicle, (in_que + j), lane(j), road(j), time, false);
             vehicle(in_que+j).figure = drawVehicle(vehicle(in_que+j), t);
         end
