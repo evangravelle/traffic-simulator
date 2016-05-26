@@ -73,7 +73,7 @@ num_lanes = 3; % number of lanes
 [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
-[vehicle]= drawAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
+[vehicle]= drawAllVehicles(inters, vehicle, road, lane, time_enter);
 % END OF SPAWNING
 %--------------------------------------------------------------------------
 
@@ -107,5 +107,14 @@ for t = delta_t*(1:num_iter)
     % [vehicle]= makeAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
     
     pause(delta_t)
+    
+    % Now spawn new vehicles
+    [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
+    in_queue = length(vehicle); % count number of cars already in the intersection
+    if isnan(road) == 0 % if spawned at least one
+        for j = 1:length(road) %assign every car its road and lane
+            [vehicle] = makeVehicle(inters,vehicle, (in_queue + j), lane(j), road(j), t);
+        end
+    end
 end
 
