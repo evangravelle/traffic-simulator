@@ -44,8 +44,8 @@ vehicle = struct;
 % initialize simulation parameters
 t = 0;
 delta_t = .1;
-num_iter = 200;
-phase_length = 20;
+phase_length = 30; % time of whole intersection cycle
+num_iter = 0.5*phase_length/delta_t;
 
 % % first vehicle
 % i = 1; % vehicle number
@@ -66,7 +66,7 @@ phase_length = 20;
 
 %--------------------------------------------------------------------------
 % SPAWN VEHICLES  !!!USE THIS INSTEAD IF YOU WANT TO SPAWN RANDOMLY!!!
-lambda = 2; % spawn average rate
+lambda = 2*delta_t; % spawn rate, average vehicles per second
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 % randomly choose roads and lanes (generally returns a vector)
@@ -77,10 +77,25 @@ time_enter = 0;
 % END OF SPAWNING
 %--------------------------------------------------------------------------
 
-%(if [road, lane] = NaN);
+% vid_obj = VideoWriter('movie.avi','Archival');
+% vid_obj.FrameRate = 1/delta_t;
+% open(vid_obj);
 
+ctr = 1;
 % run simulation 
 for t = delta_t*(1:num_iter)
+    
+    % Yellow light time needs to be function of max velocity! Not a
+    % function of phase_length
+    if mod(t,phase_length) < 2*phase_length/5
+        inters(1).green = [1 3];
+    elseif mod(t,phase_length) < phase_length/2
+        inters(1).green = [];
+    elseif mod(t,phase_length) < 9*phase_length/10
+        inters(1).green = [2 4];
+    else
+        inters(1).green = [];
+    end
     
     % if vehicle is nonempty, run dynamics
     if ~isempty(fieldnames(vehicle))
@@ -94,19 +109,16 @@ for t = delta_t*(1:num_iter)
         title(sprintf('t = %3.f',t))
     end
     
-    if mod(t,phase_length) < phase_length/2
-        inters(1).green = [1 3];
-    else
-        inters(1).green = [2 4];
-    end
-    
     % Spawn vehicles at each time step
     % [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
     % time_enter = 0;
     % make and draw all Vehicles according to chosen roads and lanes
     % [vehicle]= makeAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
     
-    pause(delta_t)
+    pause(0.05)
+    movie(ctr) = getframe;
+    ctr = ctr+1;
+    % writeVideo(vid_obj, current_frame);
     
     % Now spawn new vehicles
     [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
@@ -117,4 +129,6 @@ for t = delta_t*(1:num_iter)
         end
     end
 end
+movie2avi(movie,'traffic_movie','COMPRESSION','None','FPS',1/delta_t);
 
+% close(vid_obj);

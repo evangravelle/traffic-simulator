@@ -5,8 +5,7 @@ FIG = figure;
 axis([-1.2*inters(1).road(1).length 1.2*inters(1).road(1).length ...
   -1.2*inters(1).road(1).length 1.2*inters(1).road(1).length])
 set(FIG, 'Position', [583 210 1027 777])
-axis off %turns axis off
-axis equal  %makes axis equal length in both x and y direction
+axis off manual equal %turns axis off, equal length in both x and y direction
 
 for i = 1:4
     hold on;

@@ -1,4 +1,5 @@
 function vehicle = runDynamics(inters, vehicle, t, delta_t)
+% Note, inters should be made more clear, is it whole struct?
 % Outputs vehicle array with new positions
 for i = 1:length(vehicle)
     % if a vehicle is in the system, then update position
@@ -11,12 +12,12 @@ for i = 1:length(vehicle)
         vehicle(i).dist_in_lane = vehicle(i).dist_in_lane + vehicle(i).velocity*delta_t;
         
         % if the vehicle has fully traversed the current road
-        if vehicle(i).dist_in_lane > inters.road(current_road).length
+        if vehicle(i).dist_in_lane > inters(current_inters).road(current_road).length
             
             lane_temp = 2*inters.road(1).num_lanes*(current_road-1) + current_lane;
             if inters(current_inters).connections(lane_temp) ~= 0
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inters.road(current_road).length;
-                lane_temp_2 = inters(vehicle(i).inters).connections(lane_temp);
+                lane_temp_2 = inters(current_inters).connections(lane_temp);
                 vehicle(i).lane = mod(lane_temp_2-1,2*inters.road(1).num_lanes)+1;
                 vehicle(i).road = floor((lane_temp_2-1)/(2*inters.road(1).num_lanes))+1;
                 
@@ -46,7 +47,7 @@ for i = 1:length(vehicle)
         if isempty(vehicle(i).vehicle_ahead)
             v3 = vehicle(i).max_velocity;
         elseif vehicle(vehicle(i).vehicle_ahead).dist_in_lane - vehicle(i).dist_in_lane < vehicle(i).velocity
-            v3 = vehicle(i).velocity + vehicle(i).min_accel*delta_t;
+            v3 = abs(vehicle(i).velocity + vehicle(i).min_accel*delta_t);
         else
             v3 = vehicle(i).max_velocity;
         end
@@ -54,11 +55,14 @@ for i = 1:length(vehicle)
         % distance to intersection
         stop_dist = inters(current_inters).road(current_road).length - vehicle(i).dist_in_lane;
         
+        % distance if brakes are slammed
+        brake_dist = 0.5*abs(vehicle(i).velocity^2/vehicle(i).min_accel);
+        
         % if the vehicle is too close and the light is not green, then slow
-        if (1.5*vehicle(i).velocity/vehicle(i).min_accel > stop_dist && ... 
-          ~ismember(current_road,inters.green))
+        if ((stop_dist-5 < brake_dist) && ... 
+          ~ismember(current_road,inters(current_inters).green))
             % a = -(2/3)*vehicle(i).velocity^2/stop_dist;
-            v4 = vehicle(i).velocity + vehicle(i).min_accel*delta_t;
+            v4 = abs(vehicle(i).velocity + vehicle(i).min_accel*delta_t);
         else
             v4 = vehicle(i).max_velocity;
         end
