@@ -11,8 +11,6 @@ for i = 1:length(vehicle)
         vehicle(i).dist_in_lane = vehicle(i).dist_in_lane + vehicle(i).velocity*delta_t;
         
         % if the vehicle has fully traversed the current road
-        i
-        current_road
         if vehicle(i).dist_in_lane > inters.road(current_road).length
             
             lane_temp = 2*inters.road(1).num_lanes*(current_road-1) + current_lane;

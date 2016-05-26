@@ -2,15 +2,15 @@ function[vehicle]=drawAllVehicles(inters, vehicle, road, lane, time, t, false)
     
     %number of Vehicles in Que
     if isfield(vehicle, 'length') == false
-        in_que = 0;
+        in_queue = 0;
     else
-        in_que = length(vehicle); 
+        in_queue = length(vehicle); 
     end
     
     % Draw all old vehicles and current time
-    if in_que > 0;
-        for i = 1:in_que
-            vehicle(i).figure = drawVehicle(vehicle(i), t);
+    if in_queue > 0;
+        for i = 1:in_queue
+            vehicle(i).figure = drawVehicle(vehicle(i));
         end
     end
     
@@ -20,8 +20,8 @@ function[vehicle]=drawAllVehicles(inters, vehicle, road, lane, time, t, false)
         spawned = length(road);
         % make assignments and draw
         for j = 1:spawned
-            [vehicle] = makeVehicle(inters,vehicle, (in_que + j), lane(j), road(j), time, false);
-            vehicle(in_que+j).figure = drawVehicle(vehicle(in_que+j), t);
+            [vehicle] = makeVehicle(inters,vehicle, (in_queue + j), lane(j), road(j), time);
+            vehicle(in_queue+j).figure = drawVehicle(vehicle(in_queue+j));
         end
     end
 end
