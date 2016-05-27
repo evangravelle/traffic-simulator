@@ -77,11 +77,11 @@ time_enter = 0;
 % END OF SPAWNING
 %--------------------------------------------------------------------------
 
-% vid_obj = VideoWriter('movie.avi','Archival');
-% vid_obj.FrameRate = 1/delta_t;
-% open(vid_obj);
+% Play this mj2 file with VLC
+vid_obj = VideoWriter('movie.avi','Archival');
+vid_obj.FrameRate = 1/delta_t;
+open(vid_obj);
 
-ctr = 1;
 % run simulation 
 for t = delta_t*(1:num_iter)
     
@@ -116,9 +116,8 @@ for t = delta_t*(1:num_iter)
     % [vehicle]= makeAllVehicles(inters, vehicle, road, lane, time_enter, t, false);
     
     pause(0.05)
-    movie(ctr) = getframe;
-    ctr = ctr+1;
-    % writeVideo(vid_obj, current_frame);
+    current_frame = getframe;
+    writeVideo(vid_obj, current_frame);
     
     % Now spawn new vehicles
     [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
@@ -129,6 +128,5 @@ for t = delta_t*(1:num_iter)
         end
     end
 end
-movie2avi(movie,'traffic_movie','COMPRESSION','None','FPS',1/delta_t);
 
-% close(vid_obj);
+close(vid_obj);
