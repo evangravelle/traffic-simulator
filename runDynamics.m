@@ -8,12 +8,14 @@ for i = 1:length(vehicle)
         current_road = vehicle(i).road;
         current_lane = vehicle(i).lane;
         current_inters = vehicle(i).inters;
+        
         % calculate linear distance travelled
         vehicle(i).dist_in_lane = vehicle(i).dist_in_lane + vehicle(i).velocity*delta_t;
         
         % if the vehicle has fully traversed the current road
         if vehicle(i).dist_in_lane > inters(current_inters).road(current_road).length
             
+            % Uses local indexing
             lane_temp = 2*inters.road(1).num_lanes*(current_road-1) + current_lane;
             if inters(current_inters).connections(lane_temp) ~= 0
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inters.road(current_road).length;
@@ -39,7 +41,7 @@ for i = 1:length(vehicle)
         
         % calculates new position
         vehicle(i).position = vehicle(i).starting_point + ...
-          (Rotate2d(inters(current_inters).road(current_road).lane(current_lane).direction)*[1 0]')'*vehicle(i).dist_in_lane;
+          (Rotate2d(inters(current_inters).road(vehicle(i).road).lane(vehicle(i).lane).direction)*[1 0]')'*vehicle(i).dist_in_lane;
         
         % calculates proposed velocities, takes minimum of them
         v1 = vehicle(i).max_velocity;
@@ -59,7 +61,7 @@ for i = 1:length(vehicle)
         brake_dist = 0.5*abs(vehicle(i).velocity^2/vehicle(i).min_accel);
         
         % if the vehicle is too close and the light is not green, then slow
-        if ((stop_dist-5 < brake_dist) && ... 
+        if ((stop_dist - 5 < brake_dist) && ... 
           ~ismember(current_road,inters(current_inters).green))
             % a = -(2/3)*vehicle(i).velocity^2/stop_dist;
             v4 = abs(vehicle(i).velocity + vehicle(i).min_accel*delta_t);
