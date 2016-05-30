@@ -2,17 +2,17 @@ function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter)
 % Initializes vehicle with zero values everywhere
 % i is the the vehicle number
 % vehicle is the structer passed in and also passed out
+% LATER ON don't pass entire vehicle array to this function, unnecessary
 
 vehicle(i).length = 4.8;
 vehicle(i).width = 2;
 vehicle(i).dist_in_lane = 0;
-vehicle(i).vehicle_ahead = [];
 vehicle(i).color = rand(1,3);
 vehicle(i).max_velocity = 20;
 vehicle(i).max_accel = 1.8;
 vehicle(i).slow_down = -1;
 vehicle(i).min_accel = -3;
-vehicle(i).velocity = vehicle(i).max_velocity-5;
+vehicle(i).velocity = vehicle(i).max_velocity - 5;
 % vehicle(i).velocity = vehicle(i).max_velocity/2 + randi(vehicle(i).max_velocity/2);
 vehicle(i).origin = 0;
 vehicle(i).destination = 0;
@@ -34,5 +34,19 @@ elseif strcmp(inters.road(road).orientation,'horizontal') == 1
 end
 
 vehicle(i).position = vehicle(i).starting_point;
+
+% Sets the vehicle ahead of i
+best_dist = Inf;
+vehicle(i).vehicle_ahead = [];
+if length(vehicle) >= 2
+    for j = 1:length(vehicle) - 1
+        if (vehicle(i).inters == vehicle(j).inters && vehicle(j).road == vehicle(i).road && ...
+          vehicle(j).lane == vehicle(i).lane && vehicle(j).dist_in_lane > vehicle(i).dist_in_lane && ...
+          vehicle(j).dist_in_lane - vehicle(i).dist_in_lane < best_dist)
+            vehicle(i).vehicle_ahead = j;
+            best_dist = vehicle(j).dist_in_lane - vehicle(i).dist_in_lane;
+        end
+    end
+end
 
 end

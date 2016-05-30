@@ -1,7 +1,7 @@
 function[vehicle]=drawAllVehicles(inters, vehicle, road, lane, time)
     
     %number of Vehicles in Queue
-    if isfield(vehicle, 'length') == false
+    if ~isfield(vehicle, 'length')
         in_queue = 0;
     else
         in_queue = length(vehicle); 

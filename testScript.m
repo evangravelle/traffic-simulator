@@ -70,7 +70,7 @@ lambda = 2*delta_t; % spawn rate, average vehicles per second
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 % randomly choose roads and lanes (generally returns a vector)
-[road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
+[road,lane] = poissonSpawn(lambda, num_roads, num_lanes);
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
 [vehicle]= drawAllVehicles(inters, vehicle, road, lane, time_enter);
@@ -101,7 +101,9 @@ for t = delta_t*(1:num_iter)
     if ~isempty(fieldnames(vehicle))
         vehicle = runDynamics(inters, vehicle, t, delta_t);
         for i = 1:length(vehicle)
-            delete(vehicle(i).figure);
+            if isfield(vehicle, 'figure')
+                delete(vehicle(i).figure);
+            end
             if (vehicle(i).time_leave == -1 && vehicle(i).time_enter ~= -1)
                 vehicle(i).figure = drawVehicle(vehicle(i));
             end
@@ -120,11 +122,15 @@ for t = delta_t*(1:num_iter)
     writeVideo(vid_obj, current_frame);
     
     % Now spawn new vehicles
-    [road,lane] = poissonSpawn(lambda, num_roads, num_lanes); 
-    in_queue = length(vehicle); % count number of cars already in the intersection
+    [road,lane] = poissonSpawn(lambda, num_roads, num_lanes);
+    if isempty(fieldnames(vehicle(1))) 
+        in_queue = 0; % overwrites the empty vehicle
+    else
+        in_queue = length(vehicle); % count number of cars already in the intersection
+    end
     if isnan(road) == 0 % if spawned at least one
         for j = 1:length(road) %assign every car its road and lane
-            [vehicle] = makeVehicle(inters,vehicle, (in_queue + j), lane(j), road(j), t);
+            [vehicle] = makeVehicle(inters, vehicle, (in_queue + j), lane(j), road(j), t);
         end
     end
 end
