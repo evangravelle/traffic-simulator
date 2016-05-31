@@ -43,28 +43,39 @@ for i = 1:length(vehicle)
         vehicle(i).position = vehicle(i).starting_point + ...
           (Rotate2d(inters(current_inters).road(vehicle(i).road).lane(vehicle(i).lane).direction)*[1 0]')'*vehicle(i).dist_in_lane;
         
-        % calculates proposed velocities, takes minimum of them
+        % Calculates proposed velocities, takes minimum of them
         v1 = vehicle(i).max_velocity;
+        
+        % after speeding up
         v2 = vehicle(i).velocity + vehicle(i).max_accel*delta_t;
-        if isempty(vehicle(i).vehicle_ahead)
+        
+        inters_dist = inters(current_inters).road(current_road).length - vehicle(i).dist_in_lane;
+        brake_dist_i = 0.5*vehicle(i).velocity^2/abs(vehicle(i).min_accel); 
+        
+        % after considering the vehicle ahead
+        if isempty(vehicle(i).vehicle_ahead) || ...
+          vehicle(vehicle(i).vehicle_ahead).road ~= vehicle(i).road || ...
+          vehicle(vehicle(i).vehicle_ahead).time_leave ~= -1
             v3 = vehicle(i).max_velocity;
-        elseif vehicle(vehicle(i).vehicle_ahead).dist_in_lane - vehicle(i).dist_in_lane < vehicle(i).velocity
-            v3 = abs(vehicle(i).velocity + vehicle(i).min_accel*delta_t);
         else
-            v3 = vehicle(i).max_velocity;
+            brake_dist_ahead = 0.5*vehicle(vehicle(i).vehicle_ahead).velocity^2/abs(vehicle(vehicle(i).vehicle_ahead).min_accel);
+            
+            % this conditional accounts for 1 second reaction time and 0.5
+            % car length buffer
+            if (vehicle(vehicle(i).vehicle_ahead).dist_in_lane - vehicle(i).dist_in_lane + ...
+              brake_dist_ahead - (brake_dist_i + vehicle(i).velocity*1) < 1.5*vehicle(i).length)
+                v3 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
+            else
+                v3 = vehicle(i).max_velocity;
+            end
         end
         
-        % distance to intersection
-        stop_dist = inters(current_inters).road(current_road).length - vehicle(i).dist_in_lane;
-        
-        % distance if brakes are slammed
-        brake_dist = 0.5*abs(vehicle(i).velocity^2/vehicle(i).min_accel);
-        
-        % if the vehicle is too close and the light is not green, then slow
-        if ((stop_dist - 5 < brake_dist) && ... 
+        % after considering the intersection ahead, slow if facing a red
+        % light
+        if (ismember(vehicle(i).lane,1:inters(current_inters).road(vehicle(i).road).num_lanes) && ...
+          (inters_dist - 2*vehicle(i).length < brake_dist_i) && ... 
           ~ismember(current_road,inters(current_inters).green))
-            % a = -(2/3)*vehicle(i).velocity^2/stop_dist;
-            v4 = abs(vehicle(i).velocity + vehicle(i).min_accel*delta_t);
+            v4 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
         else
             v4 = vehicle(i).max_velocity;
         end

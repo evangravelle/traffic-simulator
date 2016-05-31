@@ -1,0 +1,5 @@
+function out = generateIntersectionPaths()
+
+
+
+end
