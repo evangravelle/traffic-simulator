@@ -3,9 +3,15 @@ function[FIG]=drawIntersection(inters)
 % Figure properties
 FIG = figure;
 axis([-1.2*inters(1).road(1).length 1.2*inters(1).road(1).length ...
-  -1.2*inters(1).road(1).length 1.2*inters(1).road(1).length])
-set(FIG, 'Position', [583 210 1027 777])
+ -1.2*inters(1).road(1).length 1.2*inters(1).road(1).length])
+set(FIG, 'Position', [300 200 900 800])
 axis off manual equal %turns axis off, equal length in both x and y direction
+hold on
+% plots a point to make the axis stay put in the movie
+plot(inters.road(1).center + inters.road(1).length + inters.road(1).num_lanes + 10, ...
+  inters.road(1).center + inters.road(1).length + inters.road(1).num_lanes + 10, 'w*');
+plot(inters.road(1).center - inters.road(1).length - inters.road(1).num_lanes - 10, ...
+  inters.road(1).center - inters.road(1).length - inters.road(1).num_lanes - 10, 'w*');
 
 for i = 1:4
     hold on;
