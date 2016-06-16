@@ -46,10 +46,10 @@ rng(1000)
 t = 0;
 delta_t = .1;
 phase_length = 30; % time of whole intersection cycle
-num_iter = 300;
+num_iter = 600;
 gamma = 0.5; % coefficient in determining threshold for waiting
 h = 0.1; % coefficient in weighting function
-policy = 2; % 1 is simple, 2 is our policy
+policy = 1; % 1 is simple, 2 is our policy
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4;
 min_time = 5; % minimum time spent in a phase
@@ -84,18 +84,18 @@ for t = delta_t*(1:num_iter)
     % Yellow light time needs to be function of max velocity! Not a
     % function of phase_length
     if policy == 1
-        if mod(t,phase_length) < 2*phase_length/5
+        if mod(t,phase_length) < phase_length/2 - yellow_time
             inters(1).green = [1 3];
             title_str = 'green light on vertical road';
         elseif mod(t,phase_length) < phase_length/2
             inters(1).green = [];
-            title_str = 'no green';
-        elseif mod(t,phase_length) < 9*phase_length/10
+            title_str = 'yellow light on vertical road';
+        elseif mod(t,phase_length) < phase_length - yellow_time
             inters(1).green = [2 4];
             title_str = 'green light on horizontal road';
         else
             inters(1).green = [];
-            title_str = 'no green';
+            title_str = 'yellow light on horizontal road';
         end
     elseif (policy == 2)
         if switch_time < yellow_time
