@@ -78,5 +78,5 @@ for i = 1:4
     end
     hold on;
 end
-savefig(FIG,'FIG.fig');
+% savefig(FIG,'FIG.fig');
 end

@@ -1,4 +1,4 @@
-function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter)
+function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, max_speed)
 % Initializes vehicle with zero values everywhere
 % i is the the vehicle number
 % vehicle is the structer passed in and also passed out
@@ -8,17 +8,18 @@ vehicle(i).length = 4.8;
 vehicle(i).width = 2;
 vehicle(i).dist_in_lane = 0;
 vehicle(i).color = rand(1,3);
-vehicle(i).max_velocity = 20;
+vehicle(i).max_velocity = max_speed;
 vehicle(i).max_accel = 1.8;
 vehicle(i).slow_down = -1;
-vehicle(i).min_accel = -3;
-vehicle(i).velocity = vehicle(i).max_velocity - 5;
+vehicle(i).min_accel = -4;
+vehicle(i).velocity = vehicle(i).max_velocity;
 % vehicle(i).velocity = vehicle(i).max_velocity/2 + randi(vehicle(i).max_velocity/2);
 vehicle(i).origin = 0;
 vehicle(i).destination = 0;
 vehicle(i).path = [vehicle(i).origin vehicle(i).destination];
 vehicle(i).time_enter = time_enter;
 vehicle(i).time_leave = -1;
+vehicle(i).wait = 0;
 vehicle(i).lane = lane;
 vehicle(i).road = road;
 vehicle(i).inters = 1;
