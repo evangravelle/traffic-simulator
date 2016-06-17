@@ -210,3 +210,13 @@ for i = 1:length(vehicle)
     total_wait_time = total_wait_time + vehicle(i).wait;
     total_weighted_wait_time = total_weighted_wait_time + weight(vehicle(i).wait);
 end
+
+%% TO DO LIST
+% All the random stuff mentioned in the code already
+% Program motion in intersection
+% Make stops more accurate, have vehicles correct at slow speed, or just lock into destination when close
+% When extending to multiple intersections, have vehicle(i).wait reset when entering a new intersection
+% Initialize vehicle structs, make it a fixed size
+% Make an option to run without graphics
+% Use tic toc to figure out where MATLAB bottlenecks already
+% Make phase change trigger match LaTeX doc, use eta and check that W(1) > eta*W(2)
