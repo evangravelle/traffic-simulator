@@ -1,33 +1,5 @@
 clear; clc; close all
-
-% %% Julio's Test
-% 
-% % create default Intersection
-% [inters2] = makeIntersection2(); 
-% 
-% % draw Intersection
-% [FIG2] = drawIntersection(inters2);
-% 
-% % hold on to figure, future plots on same figure
-% hold on;
-% 
-% % declare vehicle structure
-% vehicle2 = struct;
-% 
-% % Spawn Vehicles
-% lambda = 2; road = 4; lane = 3;
-% [road,lane] = poissonSpawn(lambda, road, lane);
-% time_enter = 0;
-% t = 0;
-% if isnan(road) == 0
-%     for i = 1:length(road)
-%         [vehicle2] = makeVehicle(inters2,vehicle2, i, lane(i), road(i), time_enter);
-%         vehicle2(i).figure = drawVehicle(vehicle2(i), t);
-%     end
-% end
-
-
-%% Evan's Test
+% Evan's Test
 
 % create default Intersection
 [inters] = makeIntersection2(); 
@@ -49,7 +21,7 @@ phase_length = 30; % time of whole intersection cycle
 num_iter = 300;
 gamma = 0.5; % coefficient in determining threshold for waiting
 h = 0.1; % coefficient in weighting function
-policy = 2; % 1 is simple, 2 is our policy
+policy = 2; % 1 is trivial cycle policy, 2 is our policy
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4;
 min_time = 5; % minimum time spent in a phase
@@ -72,7 +44,10 @@ vid_obj = VideoWriter('movie.avi','Archival');
 vid_obj.FrameRate = 1/delta_t;
 open(vid_obj);
 
-weight = @(t) exp(h*t) - 1;
+% These parameters solve the equations for psi = 2 and T = 10
+c = [.54 1.5 1.5 -1];
+weight = @(t) c(1) * (t + c(2))^c(3) + c(4);
+
 switch_time = Inf;
 inters(1).green = [1 3];
 previous_state = 1;
@@ -211,7 +186,7 @@ for i = 1:length(vehicle)
     total_weighted_wait_time = total_weighted_wait_time + weight(vehicle(i).wait);
 end
 
-%% TO DO LIST
+% TO DO LIST
 % All the random stuff mentioned in the code already
 % Program motion in intersection
 % Make stops more accurate, have vehicles correct at slow speed, or just lock into destination when close
