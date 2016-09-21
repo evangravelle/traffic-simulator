@@ -1,0 +1,6 @@
+NMEA Sentence Code,UTC Time,Status,Latitude,Latitude Direction,Longitude,Longitude Direction,Speed (knots),Track Angle (degrees true),Date,MagneticVariation,Magnetic Variation Direction,[FAA Mode]-Optional,Checksum
+$GPRMC,164235.0,A,3305.725877,N,11718.498445,W,20.3,50.5,010810,,,A*71
+$GPRMC,164238.0,A,3305.738430,N,11718.482960,W,22.4,41.6,010810,,,A*78
+$GPRMC,164241.0,A,3305.753479,N,11718.468638,W,22.8,38.8,010810,,,A*7C
+$GPRMC,164244.0,A,3305.767553,N,11718.453857,W,22.5,41.5,010810,,,A*76
+$GPRMC,164247.0,A,3305.783199,N,11718.439655,W,23.9,31.3,010810,,,A*71
