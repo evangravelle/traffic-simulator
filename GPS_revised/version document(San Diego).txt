@@ -1,0 +1,72 @@
+This file contains the version history of the data "San Diego" data sets.
+
+Data Set: "GPS Trips - One point per link"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "GPS Trips - Gridded Track Data"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Data - 30 sec."
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Data - Hourly"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Incident and Lane Closure Detector Locations"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Data -  5 Min"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Incidents"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "GPS Trips dataset"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Lane Closures"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Data - Daily"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Maps of Coverage Area"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Freeway Detector Configuration"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Grid Map data"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
+Data Set: "Hourly Weather Data"
+Version: "1.0"
+Released on "21-May-2012"
+Description: "Initial version"
+
