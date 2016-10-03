@@ -1,4 +1,4 @@
-function out = generateIntersectionPaths()
+function out = GenerateIntersectionPaths()
 
 
 

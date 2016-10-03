@@ -1,21 +1,15 @@
 clear; clc; close all
 
-% create default Intersection
-[inters] = makeIntersection2(); 
-
-% draw Intersection
-[FIG] = drawIntersection(inters);
+inter = MakeIntersection(); 
+fig = DrawIntersection(inter);
 
 % hold on to figure, future plots on same figure
 hold on;
 
-% declare vehicle structure
-vehicle = struct;
-
-% initialize simulation parameters
+% Initialize parameters
 rng(1000)
 t = 0;
-delta_t = .1;
+delta_t = 1;
 phase_length = 35; % time of whole intersection cycle
 num_iter = 1200;
 gamma = 0.5; % coefficient in determining threshold for waiting
@@ -26,17 +20,18 @@ yellow_time = max_speed/4;
 min_time = 5; % minimum time spent in a phase
 switch_threshold = 2; % 1 means wait time must be double, 0 means greater
 
-lambda = 1*delta_t; % spawn rate, average vehicles per second
+spawn_rate = .25; % average vehicles per second
+spawn_type = 'constant';
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
-% randomly choose roads and lanes (generally returns a vector)
-[road,lane] = poissonSpawn(lambda, num_roads, num_lanes);
+[road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, 0, delta_t, spawn_type);
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
-[vehicle]= drawAllVehicles(inters, vehicle, road, lane, time_enter, max_speed);
+vehicle = struct;
+vehicle = DrawAllVehicles(inter, vehicle, road, lane, time_enter, max_speed);
 % This keeps track of last vehicle to spawn in each lane, to check for
 % collisions
-latest_spawn = zeros(num_roads,num_lanes);
+latest_spawn = zeros(num_roads, num_lanes);
 
 % Play this mj2 file with VLC
 vid_obj = VideoWriter('movie.avi','Archival');
@@ -48,7 +43,7 @@ c = [.54 1.5 1.5 -1];
 weight = @(t) c(1) * (t + c(2))^c(3) + c(4);
 
 switch_time = Inf;
-inters(1).green = [1 3];
+inter(1).green = [1 3];
 previous_state = 1;
 title_str = 'green light on vertical road';
 
@@ -77,23 +72,23 @@ for t = delta_t*(1:num_iter)
     % function of phase_length
     if policy == 1
         if mod(t,phase_length) < phase_length/2 - yellow_time
-            inters(1).green = [1 3];
+            inter(1).green = [1 3];
             title_str = 'green light on vertical road';
         elseif mod(t,phase_length) < phase_length/2
-            inters(1).green = [];
+            inter(1).green = [];
             title_str = 'yellow light on vertical road';
         elseif mod(t,phase_length) < phase_length - yellow_time
-            inters(1).green = [2 4];
+            inter(1).green = [2 4];
             title_str = 'green light on horizontal road';
         else
-            inters(1).green = [];
+            inter(1).green = [];
             title_str = 'yellow light on horizontal road';
         end
         
     elseif policy == 2 
         
         if switch_time < yellow_time
-            inters(1).green = [];
+            inter(1).green = [];
             if previous_state == 1
                 title_str = 'yellow light on horizontal road';
             elseif previous_state == 2
@@ -102,20 +97,20 @@ for t = delta_t*(1:num_iter)
         elseif switch_time < yellow_time + min_time
             if previous_state == 1
                 title_str = 'green light on vertical road';
-                inters(1).green = [1 3];
+                inter(1).green = [1 3];
             elseif previous_state == 2
                 title_str = 'green light on horizontal road';
-                inters(1).green = [2 4];
+                inter(1).green = [2 4];
             end
         else  % if switching is an option
             
             if previous_state == 2 && (W(1) - W(2))/W(2) > switch_threshold
                 switch_time = 0;
-                inters(1).green = [1 3];
+                inter(1).green = [1 3];
                 previous_state = 1;
             elseif previous_state == 1 && (W(2) - W(1))/W(1) > switch_threshold
                 switch_time = 0;
-                inters(1).green = [2 4];
+                inter(1).green = [2 4];
                 previous_state = 2;
             end
         end
@@ -143,7 +138,7 @@ for t = delta_t*(1:num_iter)
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicle))
-        vehicle = runDynamics(inters, vehicle, t, delta_t);
+        vehicle = RunDynamics(inter, vehicle, t, delta_t);
         for i = 1:length(vehicle)
             if vehicle(i).velocity <= gamma*vehicle(i).max_velocity
                 vehicle(i).wait = vehicle(i).wait + delta_t;
@@ -152,7 +147,7 @@ for t = delta_t*(1:num_iter)
                 delete(vehicle(i).figure);
             end
             if (vehicle(i).time_leave == -1 && vehicle(i).time_enter ~= -1)
-                vehicle(i).figure = drawVehicle(vehicle(i));
+                vehicle(i).figure = DrawVehicle(vehicle(i));
             end
         end
     end
@@ -162,7 +157,7 @@ for t = delta_t*(1:num_iter)
     writeVideo(vid_obj, current_frame);
     
     % Now spawn new vehicles
-    [road,lane] = poissonSpawn(lambda, num_roads, num_lanes);
+    [road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, t, delta_t, spawn_type);
     if isempty(fieldnames(vehicle(1))) 
         in_queue = 0; % overwrites the empty vehicle
     else
@@ -176,7 +171,7 @@ for t = delta_t*(1:num_iter)
               norm(vehicle(latest_spawn(road(j),lane(j))).position - ...
               vehicle(latest_spawn(road(j),lane(j))).starting_point, 2) > ...
               4*vehicle(latest_spawn(road(j),lane(j))).length
-                [vehicle] = makeVehicle(inters, vehicle, (in_queue + j), lane(j), road(j), t, max_speed);
+                [vehicle] = MakeVehicle(inter, vehicle, (in_queue + j), lane(j), road(j), t, max_speed);
                 latest_spawn(road(j),lane(j)) = in_queue + j;
             end
         end

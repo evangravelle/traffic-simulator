@@ -1,4 +1,4 @@
-function[handle] = drawVehicle(current_vehicle)
+function [handle] = DrawVehicle(current_vehicle)
 
 % Finds corners of polygon
 hyp = norm([current_vehicle.length/2 current_vehicle.width/2],2);
