@@ -8,7 +8,7 @@ road_lanes = repmat(1:num_lanes, 1, num_roads);
 
 % Spawn from Poisson distribution
 if strcmp(type, 'constant')
-    if mod(time, delta_t / spawn_rate) == 0
+    if mod(time, 1 / spawn_rate) == 0
         num_vehicles = ceil(max(delta_t * spawn_rate, 1));
         road = [];
         lane = [];
@@ -30,7 +30,7 @@ elseif strcmp(type, 'constant')
   
     % check if too many vehicles spawned
     while num_vehicles > max_num_vehicles;
-      num_vehicles = poissrnd(lambda); % if so change again
+        num_vehicles = poissrnd(lambda); % if so change again
     end
   
     if num_vehicles > 0
