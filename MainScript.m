@@ -2,28 +2,25 @@ clear; clc; close all
 
 inter = MakeIntersection(); 
 fig = DrawIntersection(inter);
-
-% hold on to figure, future plots on same figure
 hold on;
 
 % Initialize parameters
-rng(1000)
-t = 0;
-delta_t = 1;
-phase_length = 35; % time of whole intersection cycle
+delta_t = .1;
 num_iter = 1200;
-gamma = 0.5; % coefficient in determining threshold for waiting
+weight_thresh = 0.1; % 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 h = 0.1; % coefficient in weighting function
-policy = 2; % 1 is cyclical policy, 2 is our policy
+policy = 2; % 1 is cyclical policy, 2 is weight comparison policy
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4;
+phase_length = 35; % time of whole intersection cycle
 min_time = 5; % minimum time spent in a phase
-switch_threshold = 2; % 1 means wait time must be double, 0 means greater
-
-spawn_rate = .25; % average vehicles per second
+switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
+spawn_rate = .2; % average vehicles per second
 spawn_type = 'constant';
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
+
+rng(1000)
 [road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, 0, delta_t, spawn_type);
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
@@ -39,17 +36,19 @@ vid_obj.FrameRate = 1/delta_t;
 open(vid_obj);
 
 % These parameters solve the equations for psi = 2 and T = 10
-c = [.54 1.5 1.5 -1];
+c = [.54 1.5 1.5 -.95];
 weight = @(t) c(1) * (t + c(2))^c(3) + c(4);
 
 switch_time = Inf;
 inter(1).green = [1 3];
 previous_state = 1;
 title_str = 'green light on vertical road';
+t = 0;
 
-% run simulation 
+% Run simulation 
 for t = delta_t*(1:num_iter)
     
+    % Calculates weight in each lane
     W = [0 0];
     if ~isempty(fieldnames(vehicle))
         for i = 1:length(vehicle)
@@ -86,7 +85,6 @@ for t = delta_t*(1:num_iter)
         end
         
     elseif policy == 2 
-        
         if switch_time < yellow_time
             inter(1).green = [];
             if previous_state == 1
@@ -103,7 +101,6 @@ for t = delta_t*(1:num_iter)
                 inter(1).green = [2 4];
             end
         else  % if switching is an option
-            
             if previous_state == 2 && (W(1) - W(2))/W(2) > switch_threshold
                 switch_time = 0;
                 inter(1).green = [1 3];
@@ -119,16 +116,16 @@ for t = delta_t*(1:num_iter)
     title([sprintf('t = %3.f, ',t) title_str])
     text_box = uicontrol('style','text');
     if policy == 2
-        text_str = ['Custom Wait Time Policy   ';
-            '  vertical weight = ', sprintf('%6.2f',W(1));
-            'horizontal weight = ', sprintf('%6.2f',W(2))];
+        text_str = ['Custom Wait Time Policy     ';
+            '  vertical weight = ', sprintf('%8.2f',W(1));
+            'horizontal weight = ', sprintf('%8.2f',W(2))];
     elseif policy == 1
-        text_str = ['Fixed Cycle Policy        ';
-            '  vertical weight = ', sprintf('%6.2f',W(1)); 
-            'horizontal weight = ', sprintf('%6.2f',W(2))];
+        text_str = ['Fixed Cycle Policy          ';
+            '  vertical weight = ', sprintf('%8.2f',W(1)); 
+            'horizontal weight = ', sprintf('%8.2f',W(2))];
     else
-        text_str = ['  vertical weight = ', sprintf('%6.2f',W(1)); 
-            'horizontal weight = ', sprintf('%6.2f',W(2))];
+        text_str = ['  vertical weight =   ', sprintf('%8.2f',W(1)); 
+            'horizontal weight = ', sprintf('%8.2f',W(2))];
     end
     set(text_box,'String',text_str)
     set(text_box,'Units','characters')
@@ -140,7 +137,7 @@ for t = delta_t*(1:num_iter)
     if ~isempty(fieldnames(vehicle))
         vehicle = RunDynamics(inter, vehicle, t, delta_t);
         for i = 1:length(vehicle)
-            if vehicle(i).velocity <= gamma*vehicle(i).max_velocity
+            if vehicle(i).velocity <= weight_thresh*vehicle(i).max_velocity
                 vehicle(i).wait = vehicle(i).wait + delta_t;
             end
             if isfield(vehicle, 'figure')
@@ -181,6 +178,7 @@ for t = delta_t*(1:num_iter)
 end
 
 close(vid_obj);
+close(gcf);
 
 % Post processing
 total_time = 0;
