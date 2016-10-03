@@ -1,5 +1,5 @@
-function vehicle = runDynamics(inters, vehicle, t, delta_t)
-% Note, inters should be made more clear, is it whole struct?
+function vehicle = RunDynamics(inter, vehicle, t, delta_t)
+% Note, inter should be made more clear, is it whole struct?
 % Outputs vehicle array with new positions
 for i = 1:length(vehicle)
     % if a vehicle is in the system, then update position
@@ -7,29 +7,29 @@ for i = 1:length(vehicle)
         
         current_road = vehicle(i).road;
         current_lane = vehicle(i).lane;
-        current_inters = vehicle(i).inters;
+        current_inter = vehicle(i).inter;
         
         % calculate linear distance travelled
         vehicle(i).dist_in_lane = vehicle(i).dist_in_lane + vehicle(i).velocity*delta_t;
         
         % if the vehicle has fully traversed the current road
-        if vehicle(i).dist_in_lane > inters(current_inters).road(current_road).length
+        if vehicle(i).dist_in_lane > inter(current_inter).road(current_road).length
             
             % Uses local indexing
-            lane_temp = 2*inters.road(1).num_lanes*(current_road-1) + current_lane;
-            if inters(current_inters).connections(lane_temp) ~= 0
-                vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inters.road(current_road).length;
-                lane_temp_2 = inters(current_inters).connections(lane_temp);
-                vehicle(i).lane = mod(lane_temp_2-1,2*inters.road(1).num_lanes)+1;
-                vehicle(i).road = floor((lane_temp_2-1)/(2*inters.road(1).num_lanes))+1;
+            lane_temp = 2*inter.road(1).num_lanes*(current_road-1) + current_lane;
+            if inter(current_inter).connections(lane_temp) ~= 0
+                vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter.road(current_road).length;
+                lane_temp_2 = inter(current_inter).connections(lane_temp);
+                vehicle(i).lane = mod(lane_temp_2-1,2*inter.road(1).num_lanes)+1;
+                vehicle(i).road = floor((lane_temp_2-1)/(2*inter.road(1).num_lanes))+1;
                 
-                if strcmp(inters(current_inters).road(vehicle(i).road).orientation,'vertical') == 1
-                    vehicle(i).starting_point = [inters(current_inters).road(vehicle(i).road).lane(vehicle(i).lane).center, ...
-                      inters(current_inters).road(vehicle(i).road).starting_point];
+                if strcmp(inter(current_inter).road(vehicle(i).road).orientation,'vertical') == 1
+                    vehicle(i).starting_point = [inter(current_inter).road(vehicle(i).road).lane(vehicle(i).lane).center, ...
+                      inter(current_inter).road(vehicle(i).road).starting_point];
                     vehicle(i).orientation = pi/2;
-                elseif strcmp(inters(current_inters).road(vehicle(i).road).orientation,'horizontal') == 1
-                    vehicle(i).starting_point = [inters(current_inters).road(vehicle(i).road).starting_point, ...
-                      inters(current_inters).road(vehicle(i).road).lane(vehicle(i).lane).center];
+                elseif strcmp(inter(current_inter).road(vehicle(i).road).orientation,'horizontal') == 1
+                    vehicle(i).starting_point = [inter(current_inter).road(vehicle(i).road).starting_point, ...
+                      inter(current_inter).road(vehicle(i).road).lane(vehicle(i).lane).center];
                     vehicle(i).orientation = 0;
                 end
 
@@ -41,7 +41,7 @@ for i = 1:length(vehicle)
         
         % calculates new position
         vehicle(i).position = vehicle(i).starting_point + ...
-          (Rotate2d(inters(current_inters).road(vehicle(i).road).lane(vehicle(i).lane).direction)*[1 0]')'*vehicle(i).dist_in_lane;
+          (Rotate2d(inter(current_inter).road(vehicle(i).road).lane(vehicle(i).lane).direction)*[1 0]')'*vehicle(i).dist_in_lane;
         
         % Calculates proposed velocities, takes minimum of them
         v1 = vehicle(i).max_velocity;
@@ -49,7 +49,7 @@ for i = 1:length(vehicle)
         % after speeding up
         v2 = vehicle(i).velocity + vehicle(i).max_accel*delta_t;
         
-        inters_dist = inters(current_inters).road(current_road).length - vehicle(i).dist_in_lane;
+        inter_dist = inter(current_inter).road(current_road).length - vehicle(i).dist_in_lane;
         brake_dist_i = 0.5*vehicle(i).velocity^2/abs(vehicle(i).min_accel); 
         
         % after considering the vehicle ahead
@@ -70,11 +70,11 @@ for i = 1:length(vehicle)
             end
         end
         
-        % after considering the intersection ahead, slow if facing a red
+        % after considering the interection ahead, slow if facing a red
         % light
-        if (ismember(vehicle(i).lane,1:inters(current_inters).road(vehicle(i).road).num_lanes) && ...
-          (inters_dist - 2*vehicle(i).length < brake_dist_i) && ... 
-          ~ismember(current_road,inters(current_inters).green))
+        if (ismember(vehicle(i).lane,1:inter(current_inter).road(vehicle(i).road).num_lanes) && ...
+          (inter_dist - 2*vehicle(i).length < brake_dist_i) && ... 
+          ~ismember(current_road,inter(current_inter).green))
             v4 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
         else
             v4 = vehicle(i).max_velocity;

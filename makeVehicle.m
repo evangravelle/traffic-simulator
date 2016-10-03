@@ -1,4 +1,4 @@
-function[vehicle] = makeVehicle(inters, vehicle, i, lane, road, time_enter, max_speed)
+function vehicle = MakeVehicle(inter, vehicle, i, lane, road, time_enter, max_speed)
 % Initializes vehicle with zero values everywhere
 % i is the the vehicle number
 % vehicle is the structer passed in and also passed out
@@ -22,15 +22,15 @@ vehicle(i).time_leave = -1;
 vehicle(i).wait = 0;
 vehicle(i).lane = lane;
 vehicle(i).road = road;
-vehicle(i).inters = 1;
+vehicle(i).inter = 1;
 
-if strcmp(inters.road(road).orientation,'vertical') == 1
-    vehicle(i).starting_point = [inters.road(road).lane(lane).center,...
-        inters.road(road).ending_point];
+if strcmp(inter.road(road).orientation,'vertical') == 1
+    vehicle(i).starting_point = [inter.road(road).lane(lane).center,...
+        inter.road(road).ending_point];
     vehicle(i).orientation = pi/2;
-elseif strcmp(inters.road(road).orientation,'horizontal') == 1
-    vehicle(i).starting_point = [inters.road(road).ending_point, ...
-        inters.road(road).lane(lane).center];
+elseif strcmp(inter.road(road).orientation,'horizontal') == 1
+    vehicle(i).starting_point = [inter.road(road).ending_point, ...
+        inter.road(road).lane(lane).center];
     vehicle(i).orientation = 0;
 end
 
@@ -41,7 +41,7 @@ best_dist = Inf;
 vehicle(i).vehicle_ahead = [];
 if length(vehicle) >= 2
     for j = 1:length(vehicle) - 1
-        if (vehicle(i).inters == vehicle(j).inters && vehicle(j).road == vehicle(i).road && ...
+        if (vehicle(i).inter == vehicle(j).inter && vehicle(j).road == vehicle(i).road && ...
           vehicle(j).lane == vehicle(i).lane && vehicle(j).dist_in_lane > vehicle(i).dist_in_lane && ...
           vehicle(j).dist_in_lane - vehicle(i).dist_in_lane < best_dist)
             vehicle(i).vehicle_ahead = j;
