@@ -17,7 +17,7 @@ for i = 1:length(vehicle)
             
             % Uses local indexing
             lane_temp = 2*inter.road(1).num_lanes*(current_road-1) + current_lane;
-            if inter(current_inter).connections(lane_temp) ~= 0
+            if inter(current_inter).connections(lane_temp, 1) ~= 0
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter.road(current_road).length;
                 lane_temp_2 = inter(current_inter).connections(lane_temp);
                 vehicle(i).lane = mod(lane_temp_2-1,2*inter.road(1).num_lanes)+1;
