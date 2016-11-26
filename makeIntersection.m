@@ -1,12 +1,12 @@
 function[inters] = MakeIntersection()
-%% Declare structures
+% Declare structures
 num_intersections = 1;
 inters(num_intersections) = struct;
 inters.road.lane = struct;
 inters.green = struct;
 inters.connections = struct;
 
-%% Make the Intersection
+% Make the Intersection
 for k = 1:num_intersections
     inters(k).center = [0,0];
     for j = 1:4 % 4 roads
@@ -118,26 +118,26 @@ for k = 1:num_intersections
     
     % defines lane connections
     num = inters(k).road(1).num_lanes;
-    inters(k).connections = zeros(8*num,1);
+    inters(k).connections = zeros(8*num,2);
     
     % right turns
-    inters(k).connections(1) = 8*num;
-    inters(k).connections(2*num+1) = 2*num;
-    inters(k).connections(4*num+1) = 4*num;
-    inters(k).connections(6*num+1) = 6*num;
+    inters(k).connections(1, :) = [-1, 8*num];
+    inters(k).connections(2*num+1, :) = [-2*num+1, 2*num];
+    inters(k).connections(4*num+1, :) = [-4*num+1, 4*num];
+    inters(k).connections(6*num+1, :) = [-6*num+1, 6*num];
     
     % left turns
-    inters(k).connections(num) = 3*num+1;
-    inters(k).connections(3*num) = 5*num+1;
-    inters(k).connections(5*num) = 7*num+1;
-    inters(k).connections(7*num) = num+1;
+    inters(k).connections(num, :) = [-num, 3*num+1];
+    inters(k).connections(3*num, :) = [-3*num, 5*num+1];
+    inters(k).connections(5*num, :) = [-5*num, 7*num+1];
+    inters(k).connections(7*num, :) = [-7*num, num+1];
     
     % straights
     for i = 2:num-1
-        inters(k).connections(i) = 6*num-i+1;
-        inters(k).connections(2*num+i) = 8*num-i+1;
-        inters(k).connections(4*num+i) = 2*num-i+1;
-        inters(k).connections(6*num+i) = 4*num-i+1;
+        inters(k).connections(i, :) = [-i, 6*num-i+1];
+        inters(k).connections(2*num+i, :) = [-2*num+i, 8*num-i+1];
+        inters(k).connections(4*num+i, :) = [-4*num+i, 2*num-i+1];
+        inters(k).connections(6*num+i, :) = [-6*num+i, 4*num-i+1];
     end
     
 end
