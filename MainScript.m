@@ -1,12 +1,10 @@
 clear; clc; close all
-
-inter = MakeIntersection(); 
-fig = DrawIntersection(inter);
 hold on;
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 1200;
+num_iter = 600;
+num_intersections = 1;
 weight_thresh = 0.1; % 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 h = 0.1; % coefficient in weighting function
 policy = 2; % 1 is cyclical policy, 2 is weight comparison policy
@@ -16,9 +14,25 @@ phase_length = 35; % time of whole intersection cycle
 min_time = 5; % minimum time spent in a phase
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .2; % average vehicles per second
-spawn_type = 'constant';
+spawn_type = 'poisson'; % 'poisson'
+all_straight = true; % true if no turns exist
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
+lane_width = 3.2;
+lane_length = 100;
+
+if all_straight
+    straight_list = 1:num_lanes;
+    turn_radius = Inf*ones(num_lanes,1);
+    turn_length = 2*num_lanes*lane_width*ones(num_lanes,1);
+else
+    straight_list = 2:num_lanes-1;
+    turn_radius = [(lane_width/2) Inf (7*lane_width/2)];
+    turn_length = [(pi/2)*(lane_width/2) 2*num_lanes*lane_width (pi/2)*(7*lane_width/2)];
+end
+
+inter = MakeIntersection(num_intersections, lane_width, lane_length, num_lanes, all_straight); 
+fig = DrawIntersection(inter);
 
 rng(1000)
 [road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, 0, delta_t, spawn_type);
@@ -44,7 +58,6 @@ inter(1).green = [1 3];
 previous_state = 1;
 title_str = 'green light on vertical road';
 t = 0;
-
 % Run simulation 
 for t = delta_t*(1:num_iter)
     
@@ -83,7 +96,7 @@ for t = delta_t*(1:num_iter)
             inter(1).green = [];
             title_str = 'yellow light on horizontal road';
         end
-        
+
     elseif policy == 2 
         if switch_time < yellow_time
             inter(1).green = [];
@@ -135,7 +148,7 @@ for t = delta_t*(1:num_iter)
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicle))
-        vehicle = RunDynamics(inter, vehicle, t, delta_t);
+        vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, t, delta_t);
         for i = 1:length(vehicle)
             if vehicle(i).velocity <= weight_thresh*vehicle(i).max_velocity
                 vehicle(i).wait = vehicle(i).wait + delta_t;
@@ -156,9 +169,9 @@ for t = delta_t*(1:num_iter)
     % Now spawn new vehicles
     [road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, t, delta_t, spawn_type);
     if isempty(fieldnames(vehicle(1))) 
-        in_queue = 0; % overwrites the empty vehicle
+        ctr = 0; % overwrites the empty vehicle
     else
-        in_queue = length(vehicle); % count number of cars already in the intersection
+        ctr = length(vehicle); % count number of cars already spawned
     end
     if ~isnan(road) % if spawned at least one
         for j = 1:length(road) % assign every car its road and lane
@@ -168,8 +181,9 @@ for t = delta_t*(1:num_iter)
               norm(vehicle(latest_spawn(road(j),lane(j))).position - ...
               vehicle(latest_spawn(road(j),lane(j))).starting_point, 2) > ...
               4*vehicle(latest_spawn(road(j),lane(j))).length
-                [vehicle] = MakeVehicle(inter, vehicle, (in_queue + j), lane(j), road(j), t, max_speed);
-                latest_spawn(road(j),lane(j)) = in_queue + j;
+                [vehicle] = MakeVehicle(inter, vehicle, (ctr + 1), lane(j), road(j), t, max_speed);
+                latest_spawn(road(j),lane(j)) = ctr + 1;
+                ctr = ctr + 1;
             end
         end
     end

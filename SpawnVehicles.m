@@ -22,26 +22,26 @@ if strcmp(type, 'constant')
     end
     
 % Spawn from Poisson distribution or from uniform
-elseif strcmp(type, 'constant')
+elseif strcmp(type, 'poisson')
     num_vehicles = poissrnd(spawn_rate);
   
     % max number of vehicle has upper bound by number of lanes
     max_num_vehicles = num_roads*num_lanes;
   
     % check if too many vehicles spawned
-    while num_vehicles > max_num_vehicles;
+    while num_vehicles > max_num_vehicles
         num_vehicles = poissrnd(lambda); % if so change again
     end
   
     if num_vehicles > 0
         road = randi([1,num_roads], 1 ,num_vehicles);
         lane = randi([1,num_lanes], 1, num_vehicles);
-        for j = 1:num_vehicles
-            k = road(j);
-            lane_index = randi([1,length(road_lanes(k, :))]);
-            lane(j) = road_lanes(k, lane_index);
-            road_lanes(k, lane_index) = [];
-        end
+        % for j = 1:num_vehicles
+        %     k = road(j);
+        %     lane_index = randi([1,length(road_lanes(k, :))]);
+        %     lane(j) = road_lanes(k, lane_index);
+        %     road_lanes(k, lane_index) = [];
+        % end
     else
         road = nan;
         lane = nan;

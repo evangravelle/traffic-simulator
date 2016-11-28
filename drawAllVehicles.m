@@ -8,7 +8,7 @@ function vehicle = DrawAllVehicles(inter, vehicle, road, lane, time, max_speed)
     end
     
     % Draw all old vehicles and current time
-    if in_queue > 0;
+    if in_queue > 0
         for i = 1:in_queue
             vehicle(i).figure = DrawVehicle(vehicle(i));
         end
