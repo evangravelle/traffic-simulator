@@ -1,4 +1,4 @@
-function vehicle = RunDynamics(inter, vehicle, t, delta_t)
+function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, t, delta_t)
 % Note, inter should be made more clear, is it whole struct?
 % Outputs vehicle array with new positions
 for i = 1:length(vehicle)
@@ -12,16 +12,40 @@ for i = 1:length(vehicle)
         % calculate linear distance travelled
         vehicle(i).dist_in_lane = vehicle(i).dist_in_lane + vehicle(i).velocity*delta_t;
         
-        % if the vehicle has fully traversed the current road
-        if vehicle(i).dist_in_lane > inter(current_inter).road(current_road).length
+        % if the vehicle has left the current road
+        if vehicle(i).dist_in_lane > inter(current_inter).road(current_road).length && ...
+          vehicle(i).lane > 0
+            
+            % uses local indexing
+            lane_temp = 2*inter.road(1).num_lanes*(current_road-1) + current_lane;
+            
+            % if there is a lane to connect to
+            lane_temp_new = inter(current_inter).connections(lane_temp);
+            if lane_temp_new ~= 0
+                
+                vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter(current_inter).road(current_road).length;
+                % negative lane indicates turning
+                vehicle(i).lane = -vehicle(i).lane;
+                
+            else
+                % delete vehicle here?
+                vehicle(i).dist_in_lane = 0;
+                vehicle(i).time_leave = t;
+            end
+        end
+        
+        % if the vehicle has left the intersection
+        if vehicle(i).lane < 0 && vehicle(i).dist_in_lane > turn_length(-vehicle(i).lane)
             
             % Uses local indexing
-            lane_temp = 2*inter.road(1).num_lanes*(current_road-1) + current_lane;
-            if inter(current_inter).connections(lane_temp, 1) ~= 0
-                vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter.road(current_road).length;
-                lane_temp_2 = inter(current_inter).connections(lane_temp);
-                vehicle(i).lane = mod(lane_temp_2-1,2*inter.road(1).num_lanes)+1;
-                vehicle(i).road = floor((lane_temp_2-1)/(2*inter.road(1).num_lanes))+1;
+            lane_temp = 2*inter.road(1).num_lanes*(current_road-1) - current_lane;
+            
+            % if there is a lane to connect to
+            lane_temp_new = inter(current_inter).connections(lane_temp);
+            if lane_temp_new ~= 0
+                vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - turn_length(-vehicle(i).lane);
+                vehicle(i).lane = mod(lane_temp_new-1,2*inter.road(1).num_lanes)+1;
+                vehicle(i).road = floor((lane_temp_new-1)/(2*inter.road(1).num_lanes))+1;
                 
                 if strcmp(inter(current_inter).road(vehicle(i).road).orientation,'vertical') == 1
                     vehicle(i).starting_point = [inter(current_inter).road(vehicle(i).road).lane(vehicle(i).lane).center, ...
@@ -39,9 +63,64 @@ for i = 1:length(vehicle)
             end
         end
         
-        % calculates new position
-        vehicle(i).position = vehicle(i).starting_point + ...
-          (Rotate2d(inter(current_inter).road(vehicle(i).road).lane(vehicle(i).lane).direction)*[1 0]')'*vehicle(i).dist_in_lane;
+        % Calculate the updated position. If remaining on road:
+        if vehicle(i).lane > 0
+            vehicle(i).position = vehicle(i).starting_point + ...
+              (Rotate2d(inter(current_inter).road(vehicle(i).road).lane(abs(vehicle(i).lane)).direction)*[1 0]')' * ...
+              vehicle(i).dist_in_lane;
+        % If in intersection going straight
+        elseif ismember(-vehicle(i).lane, straight_list)
+            vehicle(i).position = vehicle(i).starting_point + ...
+              (Rotate2d(inter(current_inter).road(vehicle(i).road).lane(-vehicle(i).lane).direction)*[1 0]')' * ...
+              (vehicle(i).dist_in_lane + inter(current_inter).road(vehicle(i).road).length);
+        else  % If in intersection turning
+            r = turn_radius(-vehicle(i).lane);
+            dth = (pi/2)*vehicle(i).dist_in_lane/turn_length(-vehicle(i).lane);
+            
+            if vehicle(i).lane == -2
+                if vehicle(i).road == 1
+                    vehicle(i).position = vehicle(i).starting_point + [0, -vehicle(i).dist_in_lane];
+                elseif vehicle(i).road == 2
+                    vehicle(i).position = vehicle(i).starting_point + [-vehicle(i).dist_in_lane, 0];
+                elseif vehicle(i).road == 3
+                    vehicle(i).position = vehicle(i).starting_point + [0, vehicle(i).dist_in_lane];
+                elseif vehicle(i).road == 4
+                    vehicle(i).position = vehicle(i).starting_point + [vehicle(i).dist_in_lane, 0];
+                end
+            elseif vehicle(i).road == 1 && vehicle(i).lane == -1
+                th = 0 - dth;
+                vehicle(i).position = inter(current_inter).ul + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = pi/2 - dth;
+            elseif vehicle(i).road == 1 && vehicle(i).lane == -3
+                th = pi + dth;
+                vehicle(i).position = inter(current_inter).ur + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = pi/2 + dth;
+            elseif vehicle(i).road == 2 && vehicle(i).lane == -1
+                th = 3*pi/2 - dth;
+                vehicle(i).position = inter(current_inter).ur + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = 0 - dth;
+            elseif vehicle(i).road == 2 && vehicle(i).lane == -3
+                th = pi/2 + dth;
+                vehicle(i).position = inter(current_inter).br + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = 0 + dth;
+            elseif vehicle(i).road == 3 && vehicle(i).lane == -1
+                th = pi - dth;
+                vehicle(i).position = inter(current_inter).br + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = pi/2 - dth;
+            elseif vehicle(i).road == 3 && vehicle(i).lane == -3
+                th = 0 + dth;
+                vehicle(i).position = inter(current_inter).bl + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = pi/2 + dth;
+            elseif vehicle(i).road == 4 && vehicle(i).lane == -1
+                th = pi/2 - dth;
+                vehicle(i).position = inter(current_inter).bl + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = 0 - dth;
+            elseif vehicle(i).road == 4 && vehicle(i).lane == -3
+                th = 3*pi/2 + dth;
+                vehicle(i).position = inter(current_inter).ul + [r*cos(th), r*sin(th)];
+                vehicle(i).orientation = 0 + dth;
+            end
+        end
         
         % Calculates proposed velocities, takes minimum of them
         v1 = vehicle(i).max_velocity;

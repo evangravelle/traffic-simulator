@@ -1,7 +1,7 @@
 function vehicle = MakeVehicle(inter, vehicle, i, lane, road, time_enter, max_speed)
 % Initializes vehicle with zero values everywhere
 % i is the the vehicle number
-% vehicle is the structer passed in and also passed out
+% vehicle is the structe passed in and also passed out
 
 vehicle(i).length = 4.8;
 vehicle(i).width = 2;
