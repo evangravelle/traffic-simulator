@@ -1,7 +1,21 @@
 function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, t, delta_t)
 % Note, inter should be made more clear, is it whole struct?
 % Outputs vehicle array with new positions
-for i = 1:length(vehicle)
+
+% calculates positions of vehicle and ahead, for use in velocity
+% calcs
+V = length(vehicle);
+lane_global = zeros(V,1);
+ahead_lane_global = zeros(V,1);
+for i = 1:V
+    lane_global(i) = 2*inter(1).road(1).num_lanes*(vehicle(i).road-1) + abs(vehicle(i).lane);
+    if ~isempty(vehicle(i).ahead)
+        ahead_lane_global(i) = 2*inter(1).road(1).num_lanes*(vehicle(vehicle(i).ahead).road-1) + ...
+          vehicle(vehicle(i).ahead).lane;
+    end
+end
+
+for i = 1:V
     % if a vehicle is in the system, then update position
     if (vehicle(i).time_enter ~= -1 && vehicle(i).time_leave == -1)
         
@@ -16,36 +30,35 @@ for i = 1:length(vehicle)
         if vehicle(i).dist_in_lane > inter(current_inter).road(current_road).length && ...
           vehicle(i).lane > 0
             
-            % uses local indexing
-            lane_temp = 2*inter.road(1).num_lanes*(current_road-1) + current_lane;
-            
             % if there is a lane to connect to
-            lane_temp_new = inter(current_inter).connections(lane_temp);
-            if lane_temp_new ~= 0
-                
+            lane_global_new = inter(current_inter).connections(lane_global(i));
+            if lane_global_new ~= 0
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter(current_inter).road(current_road).length;
                 % negative lane indicates turning
                 vehicle(i).lane = -vehicle(i).lane;
-                
             else
                 % delete vehicle here?
                 vehicle(i).dist_in_lane = 0;
                 vehicle(i).time_leave = t;
             end
+            
         end
         
         % if the vehicle has left the intersection
         if vehicle(i).lane < 0 && vehicle(i).dist_in_lane > turn_length(-vehicle(i).lane)
             
-            % Uses local indexing
-            lane_temp = 2*inter.road(1).num_lanes*(current_road-1) - current_lane;
-            
             % if there is a lane to connect to
-            lane_temp_new = inter(current_inter).connections(lane_temp);
-            if lane_temp_new ~= 0
+            disp(lane_global(i))
+            lane_global_new = inter(current_inter).connections(lane_global(i));
+            if lane_global_new ~= 0
+                
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - turn_length(-vehicle(i).lane);
-                vehicle(i).lane = mod(lane_temp_new-1,2*inter.road(1).num_lanes)+1;
-                vehicle(i).road = floor((lane_temp_new-1)/(2*inter.road(1).num_lanes))+1;
+                
+                % THIS IS FOR STRAIGHT ONLY
+                vehicle(i).lane = inter(1).road(1).num_lanes + 1 + vehicle(i).lane;
+                % vehicle(i).lane = inter(current_inter).connections(lane_global(i));
+                % vehicle(i).road = floor((lane_global_new-1)/(2*inter(1).road(1).num_lanes))+1;
+                vehicle(i).road = mod(vehicle(i).road + 1, 4) + 1;
                 
                 if strcmp(inter(current_inter).road(vehicle(i).road).orientation,'vertical') == 1
                     vehicle(i).starting_point = [inter(current_inter).road(vehicle(i).road).lane(vehicle(i).lane).center, ...
@@ -131,19 +144,35 @@ for i = 1:length(vehicle)
         inter_dist = inter(current_inter).road(current_road).length - vehicle(i).dist_in_lane;
         brake_dist_i = 0.5*vehicle(i).velocity^2/abs(vehicle(i).min_accel); 
         
-        % after considering the vehicle ahead
-        if isempty(vehicle(i).vehicle_ahead) || ...
-          vehicle(vehicle(i).vehicle_ahead).road ~= vehicle(i).road || ...
-          vehicle(vehicle(i).vehicle_ahead).time_leave ~= -1
+        % Considering the vehicle ahead
+        % if the vehicle has left or there is no vehicle ahead
+        if isempty(vehicle(i).ahead) || ...
+          vehicle(vehicle(i).ahead).time_leave ~= -1
+          % vehicle(vehicle(i).ahead).road ~= vehicle(i).road || ...
             v3 = vehicle(i).max_velocity;
         else
-            brake_dist_ahead = 0.5*vehicle(vehicle(i).vehicle_ahead).velocity^2/abs(vehicle(vehicle(i).vehicle_ahead).min_accel);
+            brake_dist_ahead = 0.5*vehicle(vehicle(i).ahead).velocity^2/abs(vehicle(vehicle(i).ahead).min_accel);
             
-            % this conditional accounts for 1 second reaction time and 0.5
-            % car length buffer
-            if (vehicle(vehicle(i).vehicle_ahead).dist_in_lane - vehicle(i).dist_in_lane + ...
-              brake_dist_ahead - (brake_dist_i + vehicle(i).velocity*1) < 1.5*vehicle(i).length)
-                v3 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
+            % if in the same section
+            if lane_global(i) == ahead_lane_global(i)
+                dist_ahead = vehicle(vehicle(i).ahead).dist_in_lane - vehicle(i).dist_in_lane;
+            % if i on road and ahead in intersection
+            elseif lane_global(i) == -ahead_lane_global(i)
+                dist_ahead = vehicle(vehicle(i).ahead).dist_in_lane + ...
+                  inter(current_inter).road(current_road).length - vehicle(i).dist_in_lane;
+            % if i in intersection and ahead on road ahead
+            elseif current_lane < 0
+                dist_ahead = turn_length(-current_lane) - vehicle(i).dist_in_lane + ...
+                  vehicle(vehicle(i).ahead).dist_in_lane;
+            % if i on road and ahead on road ahead
+            else
+                dist_ahead = inter(current_inter).road(current_road).length - vehicle(i).dist_in_lane + ...
+                  turn_length(current_lane) + vehicle(vehicle(i).ahead).dist_in_lane;
+            end
+                
+            if dist_ahead + ...
+                brake_dist_ahead - (brake_dist_i + vehicle(i).velocity*1) < 1.5*vehicle(i).length
+                  v3 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
             else
                 v3 = vehicle(i).max_velocity;
             end
