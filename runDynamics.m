@@ -1,4 +1,4 @@
-function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, t, delta_t)
+function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t)
 % Note, inter should be made more clear, is it whole struct?
 % Outputs vehicle array with new positions
 
@@ -210,5 +210,26 @@ for i = 1:V
         end
         
         vehicle(i).velocity = min([v1 v2 v3 v4]);
+
+        new_road = vehicle(i).road;
+        new_lane = vehicle(i).lane;
+        new_inter = vehicle(i).inter;
+
+         % adds wait time
+        if vehicle(i).dist_in_lane < inter(new_inter).road(new_road).length && ...
+          new_lane > 0 && vehicle(i).velocity <= wait_thresh*vehicle(i).max_velocity
+            vehicle(i).wait = vehicle(i).wait + delta_t;
+        end
+
+        % if the vehicle just left the current road
+        if vehicle(i).dist_in_lane > inter(new_inter).road(new_road).length && ...
+          new_lane > 0
+            % resets wait time
+            vehicle(i).wait = 0;
+        end
+
+        % if vehicle(i).wait > 0
+        %     fprintf('vehicle %d has waited %.2f\n', i, vehicle(i).wait)
+        % end
     end
 end
