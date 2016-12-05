@@ -1,10 +1,11 @@
 clear; clc; close all
+hold on;
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 300;
+num_iter = 600;
 num_intersections = 1;
-wait_thresh = 0.1; % 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
+weight_thresh = 0.1; % 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 h = 0.1; % coefficient in weighting function
 policy = 2; % 1 is cyclical policy, 2 is weight comparison policy
 max_speed = 20; % speed limit of system
@@ -18,8 +19,7 @@ all_straight = true; % true if no turns exist
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2;
-lane_length = 150;
-save_video = true;
+lane_length = 100;
 
 if all_straight
     straight_list = 1:num_lanes;
@@ -31,9 +31,8 @@ else
     turn_length = [(pi/2)*(lane_width/2) 2*num_lanes*lane_width (pi/2)*(7*lane_width/2)];
 end
 
-inter = MakeIntersection(num_intersections, lane_width, lane_length, num_lanes, all_straight);
-DrawIntersection(inter);
-hold on
+inter = MakeIntersection(num_intersections, lane_width, lane_length, num_lanes, all_straight); 
+fig = DrawIntersection(inter);
 
 rng(1000)
 [road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, 0, delta_t, spawn_type);
@@ -51,29 +50,31 @@ vid_obj.FrameRate = 1/delta_t;
 open(vid_obj);
 
 % These parameters solve the equations for psi = 2 and T = 10
-% c = [.54 1.5 1.5 -.95];
-% weight = @(t) c(1) * (t + c(2))^c(3) + c(4);
-weight = @(t) .05 * t^2;
+c = [.54 1.5 1.5 -.95];
+weight = @(t) c(1) * (t + c(2))^c(3) + c(4);
 
 switch_time = Inf;
 inter(1).green = [1 3];
 previous_state = 1;
 title_str = 'green light on vertical road';
-
+t = 0;
 % Run simulation 
-W = zeros(num_iter, 2);
-j = 1;
-tic
 for t = delta_t*(1:num_iter)
     
     % Calculates weight in each lane
+    W = [0 0];
     if ~isempty(fieldnames(vehicle))
         for i = 1:length(vehicle)
             if (vehicle(i).time_enter ~= -1 && vehicle(i).time_leave == -1 && ismember(vehicle(i).lane,1:num_lanes))
-                if mod(vehicle(i).road, 2) == 1
-                    W(j,1) = W(j,1) + weight(vehicle(i).wait);
-                else
-                    W(j,2) = W(j,2) + weight(vehicle(i).wait);
+                switch vehicle(i).road
+                    case 1
+                        W(1) = W(1) + weight(vehicle(i).wait);
+                    case 2
+                        W(2) = W(2) + weight(vehicle(i).wait);
+                    case 3
+                        W(1) = W(1) + weight(vehicle(i).wait);
+                    case 4
+                        W(2) = W(2) + weight(vehicle(i).wait);
                 end
             end
         end
@@ -113,31 +114,31 @@ for t = delta_t*(1:num_iter)
                 inter(1).green = [2 4];
             end
         else  % if switching is an option
-            if previous_state == 2 && (W(j,1) - W(j,2))/W(j,2) > switch_threshold
+            if previous_state == 2 && (W(1) - W(2))/W(2) > switch_threshold
                 switch_time = 0;
                 inter(1).green = [1 3];
                 previous_state = 1;
-            elseif previous_state == 1 && (W(j,2) - W(j,1))/W(j,1) > switch_threshold
+            elseif previous_state == 1 && (W(2) - W(1))/W(1) > switch_threshold
                 switch_time = 0;
                 inter(1).green = [2 4];
                 previous_state = 2;
             end
         end
+        
     end
-    
     title([sprintf('t = %3.f, ',t) title_str])
     text_box = uicontrol('style','text');
     if policy == 2
         text_str = ['Custom Wait Time Policy     ';
-            '  vertical weight = ', sprintf('%8.2f', W(j,1));
-            'horizontal weight = ', sprintf('%8.2f', W(j,2))];
+            '  vertical weight = ', sprintf('%8.2f',W(1));
+            'horizontal weight = ', sprintf('%8.2f',W(2))];
     elseif policy == 1
         text_str = ['Fixed Cycle Policy          ';
-            '  vertical weight = ', sprintf('%8.2f', W(j,1)); 
-            'horizontal weight = ', sprintf('%8.2f', W(j,2))];
+            '  vertical weight = ', sprintf('%8.2f',W(1)); 
+            'horizontal weight = ', sprintf('%8.2f',W(2))];
     else
-        text_str = ['  vertical weight =   ', sprintf('%8.2f', W(j,1)); 
-            'horizontal weight = ', sprintf('%8.2f', W(j,2))];
+        text_str = ['  vertical weight =   ', sprintf('%8.2f',W(1)); 
+            'horizontal weight = ', sprintf('%8.2f',W(2))];
     end
     set(text_box,'String',text_str)
     set(text_box,'Units','characters')
@@ -147,8 +148,11 @@ for t = delta_t*(1:num_iter)
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicle))
-        vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t);
+        vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, t, delta_t);
         for i = 1:length(vehicle)
+            if vehicle(i).velocity <= weight_thresh*vehicle(i).max_velocity
+                vehicle(i).wait = vehicle(i).wait + delta_t;
+            end
             if isfield(vehicle, 'figure')
                 delete(vehicle(i).figure);
             end
@@ -158,15 +162,9 @@ for t = delta_t*(1:num_iter)
         end
     end
     
-    if save_video
-        % disp('Before frame save:')
-        % toc 
-        pause(0.03)
-        current_frame = getframe(gcf);
-        writeVideo(vid_obj, current_frame);
-        % disp('After frame save:')
-        % toc
-    end
+    pause(0.05)
+    current_frame = getframe(gcf);
+    writeVideo(vid_obj, current_frame);
     
     % Now spawn new vehicles
     [road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, t, delta_t, spawn_type);
@@ -176,26 +174,23 @@ for t = delta_t*(1:num_iter)
         ctr = length(vehicle); % count number of cars already spawned
     end
     if ~isnan(road) % if spawned at least one
-        for h = 1:length(road) % assign every car its road and lane
+        for j = 1:length(road) % assign every car its road and lane
             % If the last vehicle to spawn in the lane is too close, don't
             % spawn
-            if latest_spawn(road(h),lane(h)) == 0 || ...
-              norm(vehicle(latest_spawn(road(h),lane(h))).position - ...
-              vehicle(latest_spawn(road(h),lane(h))).starting_point, 2) > ...
-              4*vehicle(latest_spawn(road(h),lane(h))).length
-                [vehicle] = MakeVehicle(inter, vehicle, ctr + 1, lane(h), road(h), t, max_speed);
-                latest_spawn(road(h),lane(h)) = ctr + 1;
+            if latest_spawn(road(j),lane(j)) == 0 || ...
+              norm(vehicle(latest_spawn(road(j),lane(j))).position - ...
+              vehicle(latest_spawn(road(j),lane(j))).starting_point, 2) > ...
+              4*vehicle(latest_spawn(road(j),lane(j))).length
+                [vehicle] = MakeVehicle(inter, vehicle, (ctr + 1), lane(j), road(j), t, max_speed);
+                latest_spawn(road(j),lane(j)) = ctr + 1;
                 ctr = ctr + 1;
             end
         end
     end
-    % disp('After MakeVehicle')
-    % toc
     
     switch_time = switch_time + delta_t;
-    j = j + 1;
 end
-toc
+
 close(vid_obj);
 close(gcf);
 
@@ -212,16 +207,6 @@ for i = 1:length(vehicle)
     total_weighted_wait_time = total_weighted_wait_time + weight(vehicle(i).wait);
 end
 
-figure
-plot(delta_t*(0:num_iter-1), W(:, 1), 'r--')
-hold on
-plot(delta_t*(0:num_iter-1), W(:, 2), 'b')
-xlabel('Time (s)')
-ylabel('Weight')
-title('Road weights')
-legend('NS','EW')
-saveas(gcf, 'weight_plot', 'png')
-
 % TO DO LIST
 % All the random stuff mentioned in the code already
 % Program motion in intersection
@@ -229,4 +214,5 @@ saveas(gcf, 'weight_plot', 'png')
 % When extending to multiple intersections, have vehicle(i).wait reset when entering a new intersection
 % Initialize vehicle structs, make it a fixed size
 % Make an option to run without graphics
+% Use tic toc to figure out where MATLAB bottlenecks already
 % Make phase change trigger match LaTeX doc, use eta and check that W(1) > eta*W(2)

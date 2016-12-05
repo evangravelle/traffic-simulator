@@ -37,13 +37,13 @@ vehicle(i).position = vehicle(i).starting_point;
 
 % Sets the vehicle ahead of i
 best_dist = Inf;
-vehicle(i).ahead = [];
+vehicle(i).vehicle_ahead = [];
 if length(vehicle) >= 2
     for j = 1:length(vehicle) - 1
         if (vehicle(i).inter == vehicle(j).inter && vehicle(j).road == vehicle(i).road && ...
           vehicle(j).lane == vehicle(i).lane && vehicle(j).dist_in_lane > vehicle(i).dist_in_lane && ...
           vehicle(j).dist_in_lane - vehicle(i).dist_in_lane < best_dist)
-            vehicle(i).ahead = j;
+            vehicle(i).vehicle_ahead = j;
             best_dist = vehicle(j).dist_in_lane - vehicle(i).dist_in_lane;
         end
     end

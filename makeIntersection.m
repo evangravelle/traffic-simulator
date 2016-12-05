@@ -128,38 +128,38 @@ for k = 1:num_intersections
     % defines lane connections. Negative connection indicates in an
     % intersection
     num = inters(k).road(1).num_lanes;
-    inters(k).connections = zeros(8*num,1);
+    inters(k).connections = zeros(8*num,2);
     
     if all_straight
         
         % straights
         for i = 1:num
-            inters(k).connections(i) = 6*num-i+1;
-            inters(k).connections(2*num+i) = 8*num-i+1;
-            inters(k).connections(4*num+i) = 2*num-i+1;
-            inters(k).connections(6*num+i) = 4*num-i+1;
+            inters(k).connections(i, :) = 6*num-i+1;
+            inters(k).connections(2*num+i, :) = 8*num-i+1;
+            inters(k).connections(4*num+i, :) = 2*num-i+1;
+            inters(k).connections(6*num+i, :) = 4*num-i+1;
         end
         
     else
     
         % right turns
-        inters(k).connections(1) = 8*num;
-        inters(k).connections(2*num+1) = 2*num;
-        inters(k).connections(4*num+1) = 4*num;
-        inters(k).connections(6*num+1) = 6*num;
+        inters(k).connections(1, :) = 8*num;
+        inters(k).connections(2*num+1, :) = 2*num;
+        inters(k).connections(4*num+1, :) = 4*num;
+        inters(k).connections(6*num+1, :) = 6*num;
 
         % left turns
-        inters(k).connections(num) = 3*num+1;
-        inters(k).connections(3*num) = 5*num+1;
-        inters(k).connections(5*num) = 7*num+1;
-        inters(k).connections(7*num) = num+1;
+        inters(k).connections(num, :) = 3*num+1;
+        inters(k).connections(3*num, :) = 5*num+1;
+        inters(k).connections(5*num, :) = 7*num+1;
+        inters(k).connections(7*num, :) = num+1;
 
         % straights
         for i = 2:num-1
-            inters(k).connections(i) = 6*num-i+1;
-            inters(k).connections(2*num+i) = 8*num-i+1;
-            inters(k).connections(4*num+i) = 2*num-i+1;
-            inters(k).connections(6*num+i) = 4*num-i+1;
+            inters(k).connections(i, :) = 6*num-i+1;
+            inters(k).connections(2*num+i, :) = 8*num-i+1;
+            inters(k).connections(4*num+i, :) = 2*num-i+1;
+            inters(k).connections(6*num+i, :) = 4*num-i+1;
         end
     
     end
