@@ -1,4 +1,4 @@
-function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, t, delta_t)
+function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t)
 % Note, inter should be made more clear, is it whole struct?
 % Outputs vehicle array with new positions
 
@@ -23,13 +23,13 @@ for i = 1:V
         current_lane = vehicle(i).lane;
         current_inter = vehicle(i).inter;
         
-        % calculate linear distance travelled
+        % calculates linear distance travelled
         vehicle(i).dist_in_lane = vehicle(i).dist_in_lane + vehicle(i).velocity*delta_t;
         
         % if the vehicle has left the current road
         if vehicle(i).dist_in_lane > inter(current_inter).road(current_road).length && ...
           vehicle(i).lane > 0
-            
+      
             % if there is a lane to connect to
             lane_global_new = inter(current_inter).connections(lane_global(i));
             if lane_global_new ~= 0
@@ -48,14 +48,14 @@ for i = 1:V
         if vehicle(i).lane < 0 && vehicle(i).dist_in_lane > turn_length(-vehicle(i).lane)
             
             % if there is a lane to connect to
-            disp(lane_global(i))
+            % disp(lane_global(i))
             lane_global_new = inter(current_inter).connections(lane_global(i));
             if lane_global_new ~= 0
                 
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - turn_length(-vehicle(i).lane);
                 
                 % THIS IS FOR STRAIGHT ONLY
-                vehicle(i).lane = inter(1).road(1).num_lanes + 1 + vehicle(i).lane;
+                vehicle(i).lane = inter(1).road(1).num_lanes + 1 + vehicle(i).lane + 3;
                 % vehicle(i).lane = inter(current_inter).connections(lane_global(i));
                 % vehicle(i).road = floor((lane_global_new-1)/(2*inter(1).road(1).num_lanes))+1;
                 vehicle(i).road = mod(vehicle(i).road + 1, 4) + 1;
@@ -189,5 +189,27 @@ for i = 1:V
         end
         
         vehicle(i).velocity = min([v1 v2 v3 v4]);
+        
+        new_road = vehicle(i).road;
+        new_lane = vehicle(i).lane;
+        new_inter = vehicle(i).inter;
+        
+         % adds wait time
+        if vehicle(i).dist_in_lane < inter(new_inter).road(new_road).length && ...
+          new_lane > 0 && vehicle(i).velocity <= wait_thresh*vehicle(i).max_velocity
+            vehicle(i).wait = vehicle(i).wait + delta_t;
+        end
+        
+        % if the vehicle just left the current road
+        if vehicle(i).dist_in_lane > inter(new_inter).road(new_road).length && ...
+          new_lane > 0
+            % resets wait time
+            vehicle(i).wait = 0;
+        end
+        
+        % if vehicle(i).wait > 0
+        %     fprintf('vehicle %d has waited %.2f\n', i, vehicle(i).wait)
+        % end
+        
     end
 end
