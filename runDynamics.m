@@ -1,4 +1,4 @@
-function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t)
+function vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, yellow_time, t, delta_t)
 % Note, inter should be made more clear, is it whole struct?
 % Outputs vehicle array with new positions
 
@@ -31,29 +31,8 @@ for i = 1:V
           vehicle(i).lane > 0
 
             % if there is a lane to connect to
-            lane_temp_new = inter(current_inter).connections(lane_temp);
+            lane_temp_new = inter(current_inter).connections(lane_global(i));
             if lane_temp_new ~= 0
-                
-                vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter(current_inter).road(current_road).length;
-                % negative lane indicates turning
-                vehicle(i).lane = -vehicle(i).lane;
-                
-            else
-                % delete vehicle here?
-                vehicle(i).dist_in_lane = 0;
-                vehicle(i).time_leave = t;
-            end
-        end
-        
-        % if the vehicle has left the intersection
-        if vehicle(i).lane < 0 && vehicle(i).dist_in_lane > turn_length(-vehicle(i).lane)
-            
-            % Uses local indexing
-            lane_temp = 2*inter.road(1).num_lanes*(current_road-1) - current_lane;
-            
-            % if there is a lane to connect to
-            lane_global_new = inter(current_inter).connections(lane_global(i));
-            if lane_global_new ~= 0
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter(current_inter).road(current_road).length;
                 % negative lane indicates turning
                 vehicle(i).lane = -vehicle(i).lane;
@@ -65,20 +44,34 @@ for i = 1:V
             
         end
         
+%         % if the vehicle has left the intersection
+%         if vehicle(i).lane < 0 && vehicle(i).dist_in_lane > turn_length(-vehicle(i).lane)
+%             
+%             % if there is a lane to connect to
+%             lane_global_new = inter(current_inter).connections(lane_global(i));
+%             if lane_global_new ~= 0
+%                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - inter(current_inter).road(current_road).length;
+%                 % negative lane indicates turning
+%                 vehicle(i).lane = -vehicle(i).lane;
+%             else
+%                 % delete vehicle here?
+%                 vehicle(i).dist_in_lane = 0;
+%                 vehicle(i).time_leave = t;
+%             end
+%             
+%         end
+        
         % if the vehicle has left the intersection
         if vehicle(i).lane < 0 && vehicle(i).dist_in_lane > turn_length(-vehicle(i).lane)
             
             % if there is a lane to connect to
-            disp(lane_global(i))
             lane_global_new = inter(current_inter).connections(lane_global(i));
             if lane_global_new ~= 0
                 
                 vehicle(i).dist_in_lane = vehicle(i).dist_in_lane - turn_length(-vehicle(i).lane);
                 
                 % THIS IS FOR STRAIGHT ONLY
-                vehicle(i).lane = inter(1).road(1).num_lanes + 1 + vehicle(i).lane;
-                % vehicle(i).lane = inter(current_inter).connections(lane_global(i));
-                % vehicle(i).road = floor((lane_global_new-1)/(2*inter(1).road(1).num_lanes))+1;
+                vehicle(i).lane = mod(lane_global_new - 1, 2*inter(1).road(current_road).num_lanes) + 1;
                 vehicle(i).road = mod(vehicle(i).road + 1, 4) + 1;
                 
                 if strcmp(inter(current_inter).road(vehicle(i).road).orientation,'vertical') == 1
@@ -162,6 +155,8 @@ for i = 1:V
         % after speeding up
         v2 = vehicle(i).velocity + vehicle(i).max_accel*delta_t;
         
+        inter_length = 2 * inter(current_inter).road(current_road).lane_width * ...
+          inter(current_inter).road(current_road).num_lanes;
         inter_dist = inter(current_inter).road(current_road).length - vehicle(i).dist_in_lane;
         brake_dist_i = 0.5*vehicle(i).velocity^2/abs(vehicle(i).min_accel); 
         
@@ -199,14 +194,25 @@ for i = 1:V
             end
         end
         
-        % after considering the interection ahead, slow if facing a red
-        % light
+        % after considering the interection ahead
+        % if a vehicle cannot stop in time, then it doesn't slow
+        % MUST BE REWRITTEN WHEN THERE ARE MULTIPLE INTERSECTIONS
+        
+        % This accounts for extra distance caused by discrete time step
+        buffer_length = 0.5 * delta_t * vehicle(i).max_velocity; 
+        
+        % if vehicle is approaching a non-green light
+        v4 = vehicle(i).max_velocity;
         if (ismember(vehicle(i).lane,1:inter(current_inter).road(vehicle(i).road).num_lanes) && ...
-          (inter_dist - 2*vehicle(i).length < brake_dist_i) && ... 
           ~ismember(current_road,inter(current_inter).green))
-            v4 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
-        else
-            v4 = vehicle(i).max_velocity;
+      
+            % if the vehicle can make it through the intersection
+            % if vehicle(i).velocity * yellow_time > inter_dist + inter_length && false
+            %     v4 = vehicle(i).max_velocity;
+            if (inter_dist - buffer_length - 2*vehicle(i).length < brake_dist_i)
+                v4 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
+            end
+            
         end
         
         vehicle(i).velocity = min([v1 v2 v3 v4]);

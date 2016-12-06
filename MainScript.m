@@ -3,14 +3,14 @@ hold on;
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 300;
+num_iter = 600;
 num_intersections = 1;
 wait_thresh = 0.1; % 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-h = 0.1; % coefficient in weighting function
-policy = 2; % 1 is cyclical policy, 2 is weight comparison policy
+% h = 0.1; % coefficient in weighting function
+policy = 'custom'; % 'cycle'
 max_speed = 20; % speed limit of system
-yellow_time = max_speed/4;
-phase_length = 35; % time of whole intersection cycle
+yellow_time = max_speed/4; % this is heuristic
+phase_length = 30; % time of whole intersection cycle
 min_time = 5; % minimum time spent in a phase
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .2; % average vehicles per second
@@ -47,9 +47,10 @@ vehicle = DrawAllVehicles(inter, vehicle, road, lane, time_enter, max_speed);
 latest_spawn = zeros(num_roads, num_lanes);
 
 % Play this mj2 file with VLC
-vid_obj = VideoWriter('movie.avi','Archival');
+% vid_obj = VideoWriter('movie.avi','Archival');
+vid_obj = VideoWriter('movie','MPEG-4');
 vid_obj.FrameRate = 1/delta_t;
-open(vid_obj);
+open(vid_obj)
 
 % These parameters solve the equations for psi = 2 and T = 10
 % c = [.54 1.5 1.5 -.95];
@@ -82,7 +83,7 @@ for t = delta_t*(1:num_iter)
     
     % Yellow light time needs to be function of max velocity! Not a
     % function of phase_length
-    if policy == 1
+    if strcmp(policy, 'cycle')
         if mod(t,phase_length) < phase_length/2 - yellow_time
             inter(1).green = [1 3];
             title_str = 'green light on vertical road';
@@ -97,7 +98,7 @@ for t = delta_t*(1:num_iter)
             title_str = 'yellow light on horizontal road';
         end
 
-    elseif policy == 2 
+    elseif strcmp(policy, 'custom') 
         if switch_time < yellow_time
             inter(1).green = [];
             if previous_state == 1
@@ -129,11 +130,11 @@ for t = delta_t*(1:num_iter)
 
     title([sprintf('t = %3.f, ',t) title_str])
     text_box = uicontrol('style','text');
-    if policy == 2
+    if strcmp(policy, 'custom')
         text_str = ['Custom Wait Time Policy     ';
             '  vertical weight = ', sprintf('%8.2f',W(j,1));
             'horizontal weight = ', sprintf('%8.2f',W(j,2))];
-    elseif policy == 1
+    elseif strcmp(policy, 'cycle')
         text_str = ['Fixed Cycle Policy          ';
             '  vertical weight = ', sprintf('%8.2f',W(j,1)); 
             'horizontal weight = ', sprintf('%8.2f',W(j,2))];
@@ -149,9 +150,9 @@ for t = delta_t*(1:num_iter)
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicle))
-        vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t);
+        vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, yellow_time, t, delta_t);
         for i = 1:length(vehicle)
-            if vehicle(i).velocity <= weight_thresh*vehicle(i).max_velocity
+            if vehicle(i).velocity <= wait_thresh*vehicle(i).max_velocity
                 vehicle(i).wait = vehicle(i).wait + delta_t;
             end
             if isfield(vehicle, 'figure')
