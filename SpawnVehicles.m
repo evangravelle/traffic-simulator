@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 function [road, lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, time, delta_t, type)
 % spawn_rate = average number of cars appearing at any given time
 % num_roads = number of roads at an intersection (this should be 4)

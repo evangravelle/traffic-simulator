@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 function [handle] = DrawVehicle(current_vehicle)
 
 % Finds corners of polygon

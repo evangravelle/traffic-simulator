@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 function vehicle = MakeVehicle(inter, vehicle, i, lane, road, time_enter, max_speed)
 % Initializes vehicle with zero values everywhere
 % i is the the vehicle number

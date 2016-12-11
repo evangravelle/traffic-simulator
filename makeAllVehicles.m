@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 function vehicle = MakeAllVehicles(inters, vehicle, road, lane, time, t, false)
 if isnan(road) == 0
     for i = 1:length(road)

@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 function FIG = DrawIntersection(inter)
 %% Draw Intersection
 % Figure properties

@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 function[inters] = MakeIntersection(num_intersections, lane_width, lane_length, num_lanes, all_straight)
 % Declare structures
 inters(num_intersections) = struct;

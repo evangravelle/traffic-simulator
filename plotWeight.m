@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 % Solve for weight parameters given 2 user parameters
 clear;clc; close all
 psi = 2;

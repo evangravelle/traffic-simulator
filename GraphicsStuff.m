@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 clear;
 clc;
 %FigHandle = figure('Position', [100, 100, 1000, 895]);

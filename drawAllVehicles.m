@@ -1,3 +1,6 @@
+% Written by Evan Gravelle and Julio Martinez
+% 12/11/16
+
 function vehicle = DrawAllVehicles(inter, vehicle, road, lane, time, max_speed)
     
     %number of Vehicles in Queue
