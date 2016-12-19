@@ -6,11 +6,13 @@ hold on;
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 600;
+num_iter = 3000;
 num_intersections = 1;
-wait_thresh = 0.1; % 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-% h = 0.1; % coefficient in weighting function
-policy = 'custom'; % 'cycle'
+
+wait_thresh = 0.1; % number between 0 and 1,
+% 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
+
+policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 phase_length = 30; % time of whole intersection cycle
@@ -23,7 +25,7 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2;
 lane_length = 150;
-save_video = true;
+make_video = true;
 
 if all_straight
     straight_list = 1:num_lanes;
@@ -51,9 +53,11 @@ latest_spawn = zeros(num_roads, num_lanes);
 
 % Play this mj2 file with VLC
 % vid_obj = VideoWriter('movie.avi','Archival');
-vid_obj = VideoWriter('movie','MPEG-4');
-vid_obj.FrameRate = 1/delta_t;
-open(vid_obj)
+if make_video
+    vid_obj = VideoWriter('movie','MPEG-4');
+    vid_obj.FrameRate = 1/delta_t;
+    open(vid_obj)
+end
 
 % These parameters solve the equations for psi = 2 and T = 10
 % c = [.54 1.5 1.5 -.95];
@@ -65,6 +69,7 @@ inter(1).green = [1 3];
 previous_state = 1;
 title_str = 'green light on vertical road';
 
+switch_log = [];
 W = zeros(num_iter,2);
 j = 1;
 tic
@@ -122,10 +127,12 @@ for t = delta_t*(1:num_iter)
                 switch_time = 0;
                 inter(1).green = [1 3];
                 previous_state = 1;
+                switch_log = [switch_log, t];
             elseif previous_state == 1 && (W(j,2) - W(j,1))/W(j,1) > switch_threshold
                 switch_time = 0;
                 inter(1).green = [2 4];
                 previous_state = 2;
+                switch_log = [switch_log, t];
             end
         end
         
@@ -167,7 +174,7 @@ for t = delta_t*(1:num_iter)
         end
     end
     
-    if save_video
+    if make_video
         % disp('Before frame save:')
         % toc
         pause(0.03)
@@ -200,14 +207,20 @@ for t = delta_t*(1:num_iter)
     end
     % disp('After MakeVehicle')
     % toc
+    
+    if mod(t, delta_t*num_iter/10) == 0
+        fprintf('Time = %f\n', t);
+    end
 
     switch_time = switch_time + delta_t;
     j = j + 1;
 end
 
-close(vid_obj);
-close(gcf);
-
+if make_video
+    close(vid_obj);
+    close(gcf);
+end
+    
 % Post processing
 total_time = 0;
 total_wait_time = 0;
@@ -225,6 +238,7 @@ figure
 plot(delta_t*(0:num_iter-1), W(:, 1), 'r--')
 hold on
 plot(delta_t*(0:num_iter-1), W(:, 2), 'b')
+plot(switch_log, zeros(length(switch_log),1), '*')
 xlabel('Time (s)')
 ylabel('Weight')
 title('Road weights')

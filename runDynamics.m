@@ -212,7 +212,7 @@ for i = 1:V
             % if the vehicle can make it through the intersection
             % if vehicle(i).velocity * yellow_time > inter_dist + inter_length && false
             %     v4 = vehicle(i).max_velocity;
-            if (inter_dist - buffer_length - 2*vehicle(i).length < brake_dist_i)
+            if (inter_dist - 1 * buffer_length - 2.5*vehicle(i).length < brake_dist_i)
                 v4 = max(0,vehicle(i).velocity + vehicle(i).min_accel*delta_t);
             end
             
