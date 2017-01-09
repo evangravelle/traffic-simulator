@@ -25,7 +25,7 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2;
 lane_length = 150;
-make_video = true;
+make_video = false;
 
 if all_straight
     straight_list = 1:num_lanes;
