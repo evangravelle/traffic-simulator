@@ -16,7 +16,7 @@ policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 phase_length = 30; % time of whole intersection cycle
-min_time = 5; % minimum time spent in a phase
+min_time = 10; % minimum time spent in a phase
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .2; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
@@ -25,7 +25,7 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2;
 lane_length = 150;
-make_video = false;
+make_video = true;
 
 if all_straight
     straight_list = 1:num_lanes;
