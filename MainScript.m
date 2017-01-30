@@ -12,7 +12,7 @@ num_intersections = 1;
 wait_thresh = 0.1; % number between 0 and 1,
 % 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 
-policy = 'custom'; % the options are 'custom' or 'cycle'
+policy = 'cycle'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 phase_length = 30; % time of whole intersection cycle
@@ -68,6 +68,9 @@ switch_time = Inf;
 inter(1).green = [1 3];
 previous_state = 1;
 title_str = 'green light on vertical road';
+lights_state = 'grgr';
+hnd = [];
+DrawLights(lights_state, inter, hnd);
 
 switch_log = [];
 W = zeros(num_iter,2);
@@ -95,15 +98,31 @@ for t = delta_t*(1:num_iter)
         if mod(t,phase_length) < phase_length/2 - yellow_time
             inter(1).green = [1 3];
             title_str = 'green light on vertical road';
+            if ~strcmp(lights_state, 'grgr')
+                lights_state = 'grgr';
+                hnd = DrawLights(lights_state, inter, hnd);
+            end
         elseif mod(t,phase_length) < phase_length/2
             inter(1).green = [];
             title_str = 'yellow light on vertical road';
+            if ~strcmp(lights_state, 'yryr')
+                lights_state = 'yryr';
+                hnd = DrawLights(lights_state, inter, hnd);
+            end
         elseif mod(t,phase_length) < phase_length - yellow_time
             inter(1).green = [2 4];
             title_str = 'green light on horizontal road';
+            if ~strcmp(lights_state, 'rgrg')
+                lights_state = 'rgrg';
+                hnd = DrawLights(lights_state, inter, hnd);
+            end
         else
             inter(1).green = [];
             title_str = 'yellow light on horizontal road';
+            if ~strcmp(lights_state, 'ygyg')
+                lights_state = 'ygyg';
+                hnd = DrawLights(lights_state, inter, hnd);
+            end
         end
 
     elseif strcmp(policy, 'custom') 
@@ -111,16 +130,32 @@ for t = delta_t*(1:num_iter)
             inter(1).green = [];
             if previous_state == 1
                 title_str = 'yellow light on horizontal road';
+                if ~strcmp(lights_state, 'ryry')
+                    lights_state = 'ryry';
+                    hnd = DrawLights(lights_state, inter, hnd);
+                end
             elseif previous_state == 2
                 title_str = 'yellow light on vertical road';
+                if ~strcmp(lights_state, 'yryr')
+                    lights_state = 'yryr';
+                    hnd = DrawLights(lights_state, inter, hnd);
+                end
             end
         elseif switch_time < yellow_time + min_time
             if previous_state == 1
                 title_str = 'green light on vertical road';
                 inter(1).green = [1 3];
+                if ~strcmp(lights_state, 'grgr')
+                    lights_state = 'grgr';
+                    hnd = DrawLights(lights_state, inter, hnd);
+                end
             elseif previous_state == 2
                 title_str = 'green light on horizontal road';
                 inter(1).green = [2 4];
+                if ~strcmp(lights_state, 'rgrg')
+                    lights_state = 'rgrg';
+                    hnd = DrawLights(lights_state, inter, hnd);
+                end
             end
         else  % if switching is an option
             if previous_state == 2 && (W(j,1) - W(j,2))/W(j,2) > switch_threshold
@@ -128,11 +163,19 @@ for t = delta_t*(1:num_iter)
                 inter(1).green = [1 3];
                 previous_state = 1;
                 switch_log = [switch_log, t];
+                if ~strcmp(lights_state, 'ryry')
+                    lights_state = 'ryry';
+                    hnd = DrawLights(lights_state, inter, hnd);
+                end
             elseif previous_state == 1 && (W(j,2) - W(j,1))/W(j,1) > switch_threshold
                 switch_time = 0;
                 inter(1).green = [2 4];
                 previous_state = 2;
                 switch_log = [switch_log, t];
+                if ~strcmp(lights_state, 'yryr')
+                    lights_state = 'yryr';
+                    hnd = DrawLights(lights_state, inter, hnd);
+                end
             end
         end
         
