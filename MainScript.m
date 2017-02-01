@@ -8,10 +8,7 @@ hold on;
 delta_t = .1;
 num_iter = 3000;
 num_intersections = 1;
-
-wait_thresh = 0.1; % number between 0 and 1,
-% 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-
+wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'cycle'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
