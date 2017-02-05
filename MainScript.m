@@ -1,13 +1,12 @@
 % Written by Evan Gravelle and Julio Martinez
 % 12/11/16
-
+W;
 clear; clc; close all
 hold on;
 
 % Initialize parameters
 delta_t = .1;
 num_iter = 3000;
-num_intersections = 2;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'cycle'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
@@ -18,6 +17,7 @@ switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means dou
 spawn_rate = .2; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
 all_straight = true; % true if no turns exist
+num_int = 2; % number of intersections
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2;
@@ -34,19 +34,19 @@ else
     turn_length = [(pi/2)*(lane_width/2) 2*num_lanes*lane_width (pi/2)*(7*lane_width/2)];
 end
 
-ints = MakeIntersections(num_intersections, lane_width, lane_length, num_lanes, all_straight);
+ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, all_straight);
 DrawIntersection(ints);
 hold on
 
 rng(1000)
-[int,road,lane] = SpawnVehicles(spawn_rate, num_intersections, num_roads, num_lanes, 0, delta_t, spawn_type);
+[ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, 0, delta_t, spawn_type);
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
-vehicle = struct;
-vehicle = DrawAllVehicles(inter, vehicle, int, road, lane, time_enter, max_speed);
+vehicles = struct;
+vehicles = DrawAllVehicles(ints, vehicles, ints_temp, roads_temp, lanes_temp, time_enter, max_speed);
 % This keeps track of last vehicle to spawn in each lane, to check for
 % collisions
-latest_spawn = zeros(num_intersections, num_roads, num_lanes);
+latest_spawn = zeros(num_int, num_roads, num_lanes);
 
 % Play this mj2 file with VLC
 % vid_obj = VideoWriter('movie.avi','Archival');
@@ -58,33 +58,31 @@ end
 
 % These parameters solve the equations for psi = 2 and T = 10
 % c = [.54 1.5 1.5 -.95];
-% weight = @(t) c(1) * (t + c(2))^c(3) + c(4);
-weight = @(t) .05 * t^2;
+% W = @(t) c(1) * (t + c(2))^c(3) + c(4);
+W = @(t) .05 * t^2;
 
 switch_time = Inf;
 inter(1).green = [1 3];
 previous_state = 1;
 title_str = 'green light on vertical road';
-lights_state = 'grgr';
 hnd = [];
-DrawLights(lights_state, inter(1), hnd);
-DrawLights(lights_state, inter(2), hnd);
+hnd = DrawLights(ints, hnd);
 
-switch_log = [];
-W = zeros(num_iter,2);
-j = 1;
-tic
+switch_log1 = [];
+switch_log2 = [];
+weight = zeros(num_int,num_iter,2);
+ctr = 1;
 % Run simulation 
 for t = delta_t*(1:num_iter)
     
     % Calculates weight in each lane
-    if ~isempty(fieldnames(vehicle))
-        for i = 1:length(vehicle)
-            if (vehicle(i).time_enter ~= -1 && vehicle(i).time_leave == -1 && ismember(vehicle(i).lane,1:num_lanes))
-                if mod(vehicle(i).road, 2) == 1
-                    W(j,1) = W(j,1) + weight(vehicle(i).wait);
+    if ~isempty(fieldnames(vehicles))
+        for v = 1:length(vehicles)
+            if (vehicles(v).time_enter ~= -1 && vehicles(v).time_leave == -1 && ismember(vehicles(v).lane,1:num_lanes))
+                if mod(vehicles(v).road, 2) == 1
+                    weight(vehicles(v).int,ctr,1) = weight(vehicles(v).int,ctr,1) + W(vehicles(v).wait);
                 else
-                    W(j,2) = W(j,2) + weight(vehicle(i).wait);
+                    weight(vehicles(v).int,ctr,2) = weight(vehicles(v).int,ctr,2) + W(vehicles(v).wait);
                 end
             end
         end
@@ -92,106 +90,88 @@ for t = delta_t*(1:num_iter)
     
     % Yellow light time needs to be function of max velocity! Not a
     % function of phase_length
-    if strcmp(policy, 'cycle')
-        if mod(t,phase_length) < phase_length/2 - yellow_time
-            inter(1).green = [1 3];
-            title_str = 'green light on vertical road';
-            if ~strcmp(lights_state, 'grgr')
-                lights_state = 'grgr';
-                hnd = DrawLights(lights_state, inter, hnd);
-            end
-        elseif mod(t,phase_length) < phase_length/2
-            inter(1).green = [];
-            title_str = 'yellow light on vertical road';
-            if ~strcmp(lights_state, 'yryr')
-                lights_state = 'yryr';
-                hnd = DrawLights(lights_state, inter, hnd);
-            end
-        elseif mod(t,phase_length) < phase_length - yellow_time
-            inter(1).green = [2 4];
-            title_str = 'green light on horizontal road';
-            if ~strcmp(lights_state, 'rgrg')
-                lights_state = 'rgrg';
-                hnd = DrawLights(lights_state, inter, hnd);
-            end
-        else
-            inter(1).green = [];
-            title_str = 'yellow light on horizontal road';
-            if ~strcmp(lights_state, 'ygyg')
-                lights_state = 'ygyg';
-                hnd = DrawLights(lights_state, inter, hnd);
-            end
-        end
-
-    elseif strcmp(policy, 'custom') 
-        if switch_time < yellow_time
-            inter(1).green = [];
-            if previous_state == 1
-                title_str = 'yellow light on horizontal road';
-                if ~strcmp(lights_state, 'ryry')
-                    lights_state = 'ryry';
-                    hnd = DrawLights(lights_state, inter, hnd);
+    for k = 1:length(ints)
+        if strcmp(policy, 'cycle')
+            if mod(t,phase_length) < phase_length/2 - yellow_time
+                if ~strcmp(ints(k).lights, 'grgr')
+                    ints(k).lights = 'grgr';
                 end
-            elseif previous_state == 2
-                title_str = 'yellow light on vertical road';
-                if ~strcmp(lights_state, 'yryr')
-                    lights_state = 'yryr';
-                    hnd = DrawLights(lights_state, inter, hnd);
+            elseif mod(t,phase_length) < phase_length/2
+                if ~strcmp(ints(k).lights, 'yryr')
+                    ints(k).lights = 'yryr';
+                end
+            elseif mod(t,phase_length) < phase_length - yellow_time
+                if ~strcmp(ints(k).lights, 'rgrg')
+                    ints(k).lights = 'rgrg';
+                end
+            else
+                if ~strcmp(ints(k).lights, 'ygyg')
+                    ints(k).lights = 'ygyg';
                 end
             end
-        elseif switch_time < yellow_time + min_time
-            if previous_state == 1
-                title_str = 'green light on vertical road';
-                inter(1).green = [1 3];
-                if ~strcmp(lights_state, 'grgr')
-                    lights_state = 'grgr';
-                    hnd = DrawLights(lights_state, inter, hnd);
+            hnd = DrawLights(ints, hnd);
+            
+        elseif strcmp(policy, 'custom')
+            % if light is yellow
+            if switch_time < yellow_time
+%                 if strcmp(ints(k).lights, 'grgr')
+%                     if ~strcmp(ints(k).lights, 'ryry')
+%                         ints(k).lights = 'ryry';
+%                         hnd = DrawLights(ints, hnd);
+%                     end
+%                 elseif previous_state == 2
+%                     if ~strcmp(ints(k).lights, 'yryr')
+%                         ints(k).lights = 'yryr';
+%                         hnd = DrawLights(ints, hnd);
+%                     end
+%                 end
+            % if stuck in green
+            elseif switch_time < yellow_time + min_time
+                if strcmp(ints(k).lights,'yryr')
+                    ints(k).lights = 'rgrg';
+                    hnd = DrawLights(ints, hnd);
+                elseif strcmp(ints(k).lights,'ryry')
+                    ints(k).lights = 'grgr';
+                    hnd = DrawLights(ints, hnd);
                 end
-            elseif previous_state == 2
-                title_str = 'green light on horizontal road';
-                inter(1).green = [2 4];
-                if ~strcmp(lights_state, 'rgrg')
-                    lights_state = 'rgrg';
-                    hnd = DrawLights(lights_state, inter, hnd);
-                end
-            end
-        else  % if switching is an option
-            if previous_state == 2 && (W(j,1) - W(j,2))/W(j,2) > switch_threshold
-                switch_time = 0;
-                inter(1).green = [1 3];
-                previous_state = 1;
-                switch_log = [switch_log, t];
-                if ~strcmp(lights_state, 'ryry')
-                    lights_state = 'ryry';
-                    hnd = DrawLights(lights_state, inter, hnd);
-                end
-            elseif previous_state == 1 && (W(j,2) - W(j,1))/W(j,1) > switch_threshold
-                switch_time = 0;
-                inter(1).green = [2 4];
-                previous_state = 2;
-                switch_log = [switch_log, t];
-                if ~strcmp(lights_state, 'yryr')
-                    lights_state = 'yryr';
-                    hnd = DrawLights(lights_state, inter, hnd);
+            else  % if switching is an option
+                if strcmp(ints(k).lights,'grgr') && (weight(k,ctr,2) - weight(k,ctr,1))/weight(k,ctr,1) > switch_threshold
+                    switch_time = 0;
+                    if k == 1
+                        switch_log1 = [switch_log1, t];
+                    elseif k == 2
+                        switch_log2 = [switch_log2, t];
+                    end
+                    ints(k).lights = 'yryr';
+                    hnd = DrawLights(ints, hnd);
+                elseif previous_state == 1 && (weight(k,ctr,1) - weight(k,ctr,2))/weight(k,ctr,2) > switch_threshold
+                    switch_time = 0;
+                    if k == 1
+                        switch_log1 = [switch_log1, t];
+                    elseif k == 2
+                        switch_log2 = [switch_log2, t];
+                    end
+                    ints(k).lights = 'ryry';
+                    hnd = DrawLights(ints, hnd);
                 end
             end
         end
-        
     end
 
-    title([sprintf('t = %3.f, ',t) title_str])
+    % INCOMPLETE, NEED TO ACCOUNT FOR MULTIPLE INTERSECTIONS
+    title('Traffic simulation')
     text_box = uicontrol('style','text');
     if strcmp(policy, 'custom')
         text_str = ['Custom Wait Time Policy     ';
-            '  vertical weight = ', sprintf('%8.2f',W(j,1));
-            'horizontal weight = ', sprintf('%8.2f',W(j,2))];
+            '  vertical weight = ', sprintf('%8.2f',weight(1,ctr,1));
+            'horizontal weight = ', sprintf('%8.2f',weight(1,ctr,2))];
     elseif strcmp(policy, 'cycle')
         text_str = ['Fixed Cycle Policy          ';
-            '  vertical weight = ', sprintf('%8.2f',W(j,1)); 
-            'horizontal weight = ', sprintf('%8.2f',W(j,2))];
+            '  vertical weight = ', sprintf('%8.2f',weight(1,ctr,1)); 
+            'horizontal weight = ', sprintf('%8.2f',weight(1,ctr,2))];
     else
-        text_str = ['  vertical weight =   ', sprintf('%8.2f',W(j,1)); 
-            'horizontal weight = ', sprintf('%8.2f',W(j,2))];
+        text_str = ['  vertical weight =   ', sprintf('%8.2f',weight(1,ctr,1)); 
+            'horizontal weight = ', sprintf('%8.2f',weight(1,ctr,2))];
     end
     set(text_box,'String',text_str)
     set(text_box,'Units','characters')
@@ -200,48 +180,44 @@ for t = delta_t*(1:num_iter)
     % set(textBox,'Position',[200 200 100 50])
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
-    if ~isempty(fieldnames(vehicle))
-        vehicle = RunDynamics(inter, vehicle, straight_list, turn_radius, turn_length, wait_thresh, yellow_time, t, delta_t);
-        for i = 1:length(vehicle)
-            if vehicle(i).velocity <= wait_thresh*vehicle(i).max_velocity
-                vehicle(i).wait = vehicle(i).wait + delta_t;
+    if ~isempty(fieldnames(vehicles))
+        vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, yellow_time, t, delta_t);
+        for v = 1:length(vehicles)
+            if vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
+                vehicles(v).wait = vehicles(v).wait + delta_t;
             end
-            if isfield(vehicle, 'figure')
-                delete(vehicle(i).figure);
+            if isfield(vehicles, 'figure')
+                delete(vehicles(v).figure);
             end
-            if (vehicle(i).time_leave == -1 && vehicle(i).time_enter ~= -1)
-                vehicle(i).figure = DrawVehicle(vehicle(i));
+            if (vehicles(v).time_leave == -1 && vehicles(v).time_enter ~= -1)
+                vehicles(v).figure = DrawVehicle(vehicles(v));
             end
         end
     end
     
     if make_video
-        % disp('Before frame save:')
-        % toc
         pause(0.03)
         current_frame = getframe(gcf);
         writeVideo(vid_obj, current_frame);
-        % disp('After frame save:')
-        % toc
     end
     
     % Now spawn new vehicles
-    [road,lane] = SpawnVehicles(spawn_rate, num_intersections, num_roads, num_lanes, t, delta_t, spawn_type);
-    if isempty(fieldnames(vehicle(1))) 
+    [ints,roads,lanes] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, t, delta_t, spawn_type);
+    if isempty(fieldnames(vehicles(1))) 
         ctr = 0; % overwrites the empty vehicle
     else
-        ctr = length(vehicle); % count number of cars already spawned
+        ctr = length(vehicles); % count number of cars already spawned
     end
     if ~isnan(road) % if spawned at least one
-        for h = 1:length(road) % assign every car its road and lane
+        for s = 1:length(roads) % assign every car its road and lane
             % If the last vehicle to spawn in the lane is too close, dont
             % spawn
-            if latest_spawn(road(h),lane(h)) == 0 || ...
-              norm(vehicle(latest_spawn(road(h),lane(h))).position - ...
-              vehicle(latest_spawn(road(h),lane(h))).starting_point, 2) > ...
-              4*vehicle(latest_spawn(road(h),lane(h))).length
-                [vehicle] = MakeVehicle(inter, vehicle, (ctr + 1), lane(h), road(h), t, max_speed);
-                latest_spawn(road(h),lane(h)) = ctr + 1;
+            if latest_spawn(ints(s),roads(s),lanes(s)) == 0 || ...
+              norm(vehicles(latest_spawn(ints(s),roads(s),lanes(s))).position - ...
+              vehicles(latest_spawn(ints(s),roads(s),lanes(s))).starting_point, 2) > ...
+              4*vehicles(latest_spawn(ints(s),roads(s),lanes(s))).length
+                [vehicles] = MakeVehicle(inter, vehicles, (ctr + 1), ints(s), lanes(s), roads(s), t, max_speed);
+                latest_spawn(road(s),lane(s)) = ctr + 1;
                 ctr = ctr + 1;
             end
         end
@@ -254,7 +230,7 @@ for t = delta_t*(1:num_iter)
     end
 
     switch_time = switch_time + delta_t;
-    j = j + 1;
+    ctr = ctr + 1;
 end
 
 if make_video
@@ -266,24 +242,27 @@ end
 total_time = 0;
 total_wait_time = 0;
 total_weighted_wait_time = 0;
-for i = 1:length(vehicle)
-    time = vehicle(i).time_leave - vehicle(i).time_enter;
+for v = 1:length(vehicles)
+    time = vehicles(v).time_leave - vehicles(v).time_enter;
     if time > 0
         total_time = total_time + time;
     end
-    total_wait_time = total_wait_time + vehicle(i).wait;
-    total_weighted_wait_time = total_weighted_wait_time + weight(vehicle(i).wait);
+    total_wait_time = total_wait_time + vehicles(v).wait;
+    total_weighted_wait_time = total_weighted_wait_time + W(vehicles(v).wait);
 end
 
 figure
-plot(delta_t*(0:num_iter-1), W(:, 1), 'r--')
 hold on
-plot(delta_t*(0:num_iter-1), W(:, 2), 'b')
-plot(switch_log, zeros(length(switch_log),1), '*')
+plot(delta_t*(0:num_iter-1), weight(1,:,1), 'r--')
+plot(delta_t*(0:num_iter-1), weight(1,:,2), 'b')
+plot(delta_t*(0:num_iter-1), weight(2,:,1), 'r--')
+plot(delta_t*(0:num_iter-1), weight(2,:,2), 'b')
+plot(switch_log1, zeros(length(switch_log1),1), '*')
+plot(switch_log2, zeros(length(switch_log2),1), '*')
 xlabel('Time (s)')
 ylabel('Weight')
 title('Road weights')
-legend('NS','EW')
+legend('NS1','EW1','NS2', 'EW2')
 saveas(gcf, 'weight_plot', 'png')
 
 % TO DO LIST

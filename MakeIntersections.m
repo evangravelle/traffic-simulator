@@ -1,11 +1,11 @@
 % Written by Evan Gravelle and Julio Martinez
 % 12/11/16
 
-function ints = MakeIntersections(num_intersections, lane_width, lane_length, num_lanes, all_straight)
+function ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, all_straight)
 % Declare structures
-ints(num_intersections) = struct;
-ints.road.lane = struct;
-ints.green = struct;
+ints(num_int) = struct;
+ints.roads.lanes = struct;
+ints.lights = struct;
 ints.connections = struct;
 ints.ul = struct;
 ints.ur = struct;
@@ -13,14 +13,15 @@ ints.bl = struct;
 ints.br = struct;
 
 % Make the Intersection
-for k = 1:num_intersections
+for k = 1:num_int
     ints(k).center = [(k-1)*2*lane_length, 0];
+    ints(k).lights = 'grgr';
     for j = 1:4 % 4 roads
-        ints(k).road(j).lane_width = lane_width; %width of each lane at intersection
-        ints(k).road(j).length = lane_length; %length of each road
-        ints(k).road(j).num_lanes = num_lanes; %number of lanes in each direction
-        ints(k).road(j).width = 2*(ints(k).road(j).lane_width)*(ints(k).road(j).num_lanes);
-        ints(k).road(j).border_lanes = [2,5]; %lanes for which we will draw a border
+        ints(k).roads(j).lane_width = lane_width; %width of each lane at intersection
+        ints(k).roads(j).length = lane_length; %length of each road
+        ints(k).roads(j).num_lanes = num_lanes; %number of lanes in each direction
+        ints(k).roads(j).width = 2*(ints(k).roads(j).lane_width)*(ints(k).roads(j).num_lanes);
+        ints(k).roads(j).border_lanes = [2,5]; %lanes for which we will draw a border
         ints(k).ul = ints(k).center + [-num_lanes*lane_width, num_lanes*lane_width];
         ints(k).ur = ints(k).center + [num_lanes*lane_width, num_lanes*lane_width];
         ints(k).bl = ints(k).center + [-num_lanes*lane_width, -num_lanes*lane_width];
@@ -28,109 +29,109 @@ for k = 1:num_intersections
         %Define Road 1
         if j == 1
             %Road Center is a scalar
-            ints(k).road(j).center = ints(k).center(1);
+            ints(k).roads(j).center = ints(k).center(1);
             %Note Orientation of Road
-            ints(k).road(j).orientation = 'vertical';
+            ints(k).roads(j).orientation = 'vertical';
             %Road Starting Point and Ending Point
-            ints(k).road(j).starting_point = ints(k).center(2) + ...
-                ints(k).road(j).num_lanes*ints(k).road(j).lane_width;
-            ints(k).road(j).ending_point = ints(k).road(j).starting_point ...
-                + ints(k).road(j).length;
+            ints(k).roads(j).starting_point = ints(k).center(2) + ...
+                ints(k).road(j).num_lanes*ints(k).roads(j).lane_width;
+            ints(k).roads(j).ending_point = ints(k).roads(j).starting_point ...
+                + ints(k).roads(j).length;
             %Define incoming lanes
-            for i = 1:ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = 3*pi/2;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    - ints(k).road(j).width/2 + i*ints(k).road(j).lane_width ...
-                    - ints(k).road(j).lane_width/2;
+            for i = 1:ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = 3*pi/2;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    - ints(k).roads(j).width/2 + i*ints(k).roads(j).lane_width ...
+                    - ints(k).roads(j).lane_width/2;
             end
             %Define outgoing lanes
-            for i = ints(k).road(j).num_lanes+1:2*ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = pi/2;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    - ints(k).road(j).width/2 + i*ints(k).road(j).lane_width ...
-                    - ints(k).road(j).lane_width/2;
+            for i = ints(k).roads(j).num_lanes+1:2*ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = pi/2;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    - ints(k).roads(j).width/2 + i*ints(k).roads(j).lane_width ...
+                    - ints(k).roads(j).lane_width/2;
             end
         %Define Road 2
         elseif j == 2
             %Road Center is a vector coordinate
-            ints(k).road(j).center = ints(k).center(2);
+            ints(k).roads(j).center = ints(k).center(2);
             %Note Orientation of Road
-            ints(k).road(j).orientation = 'horizontal';
+            ints(k).roads(j).orientation = 'horizontal';
             %Road Starting Point and Ending Point
-            ints(k).road(j).starting_point = ints(k).center(1) + ...
-                ints(k).road(j).num_lanes*ints(k).road(j).lane_width;
-            ints(k).road(j).ending_point = ints(k).road(j).starting_point ...
-                + ints(k).road(j).length;
+            ints(k).roads(j).starting_point = ints(k).center(1) + ...
+                ints(k).roads(j).num_lanes*ints(k).roads(j).lane_width;
+            ints(k).roads(j).ending_point = ints(k).roads(j).starting_point ...
+                + ints(k).roads(j).length;
             %Define incoming lanes
-            for i = 1:ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = pi;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    + ints(k).road(j).width/2 - i*ints(k).road(j).lane_width ...
-                    + ints(k).road(j).lane_width/2;
+            for i = 1:ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = pi;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    + ints(k).roads(j).width/2 - i*ints(k).roads(j).lane_width ...
+                    + ints(k).roads(j).lane_width/2;
             end
             %Define outgoing lanes
-            for i = ints(k).road(j).num_lanes+1:2*ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = 0;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    + ints(k).road(j).width/2 - i*ints(k).road(j).lane_width ...
-                    + ints(k).road(j).lane_width/2;
+            for i = ints(k).roads(j).num_lanes+1:2*ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = 0;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    + ints(k).roads(j).width/2 - i*ints(k).roads(j).lane_width ...
+                    + ints(k).roads(j).lane_width/2;
             end
         %Define Road 2
         elseif j == 3
             %Road Center is a vector coordinate
-            ints(k).road(j).center = ints(k).center(1);
+            ints(k).roads(j).center = ints(k).center(1);
             %Note Orientation of Road
-            ints(k).road(j).orientation = 'vertical';
+            ints(k).roads(j).orientation = 'vertical';
             %Road Starting Point and Ending Point
-            ints(k).road(j).starting_point = ints(k).center(2) - ...
-                ints(k).road(j).num_lanes*ints(k).road(j).lane_width;
-            ints(k).road(j).ending_point = ints(k).road(j).starting_point ...
-                - ints(k).road(j).length;
+            ints(k).roads(j).starting_point = ints(k).center(2) - ...
+                ints(k).road(j).num_lanes*ints(k).roads(j).lane_width;
+            ints(k).roads(j).ending_point = ints(k).roads(j).starting_point ...
+                - ints(k).roads(j).length;
             %Define incoming lanes
-            for i = 1:ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = pi/2;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    + ints(k).road(j).width/2 - i*ints(k).road(j).lane_width ...
-                    + ints(k).road(j).lane_width/2;
+            for i = 1:ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = pi/2;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    + ints(k).roads(j).width/2 - i*ints(k).roads(j).lane_width ...
+                    + ints(k).roads(j).lane_width/2;
             end
             %Define outgoing lanes
-            for i = ints(k).road(j).num_lanes+1:2*ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = 3*pi/2;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    + ints(k).road(j).width/2 - i*ints(k).road(j).lane_width ...
-                    + ints(k).road(j).lane_width/2;
+            for i = ints(k).roads(j).num_lanes+1:2*ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = 3*pi/2;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    + ints(k).roads(j).width/2 - i*ints(k).roads(j).lane_width ...
+                    + ints(k).roads(j).lane_width/2;
             end
         %Define Road 2
         elseif j == 4
             %Road Center is a vector coordinate
-            ints(k).road(j).center = ints(k).center(2);
+            ints(k).roads(j).center = ints(k).center(2);
             %Note Orientation of Road
-            ints(k).road(j).orientation = 'horizontal';
+            ints(k).roads(j).orientation = 'horizontal';
             %Road Starting Point and Ending Point
-            ints(k).road(j).starting_point = ints(k).center(1) - ...
-                ints(k).road(j).num_lanes*ints(k).road(j).lane_width;
-            ints(k).road(j).ending_point = ints(k).road(j).starting_point ...
-                - ints(k).road(j).length;
+            ints(k).roads(j).starting_point = ints(k).center(1) - ...
+                ints(k).roads(j).num_lanes*ints(k).roads(j).lane_width;
+            ints(k).road(j).ending_point = ints(k).roads(j).starting_point ...
+                - ints(k).roads(j).length;
             %Define incoming lanes
-            for i = 1:ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = 0;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    - ints(k).road(j).width/2 + i*ints(k).road(j).lane_width ...
-                    - ints(k).road(j).lane_width/2;
+            for i = 1:ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = 0;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    - ints(k).roads(j).width/2 + i*ints(k).roads(j).lane_width ...
+                    - ints(k).roads(j).lane_width/2;
             end
             %Define outgoing lanes
-            for i = ints(k).road(j).num_lanes+1:2*ints(k).road(j).num_lanes
-                ints(k).road(j).lane(i).direction = pi;
-                ints(k).road(j).lane(i).center = ints(k).road(j).center ...
-                    - ints(k).road(j).width/2 + i*ints(k).road(j).lane_width ...
-                    - ints(k).road(j).lane_width/2;
+            for i = ints(k).roads(j).num_lanes+1:2*ints(k).roads(j).num_lanes
+                ints(k).roads(j).lanes(i).direction = pi;
+                ints(k).roads(j).lanes(i).center = ints(k).roads(j).center ...
+                    - ints(k).roads(j).width/2 + i*ints(k).roads(j).lane_width ...
+                    - ints(k).roads(j).lane_width/2;
             end
         end
     end
     
     % defines lane connections. Negative connection indicates in an
     % intersection
-    num = ints(k).road(1).num_lanes;
+    num = ints(k).roads(1).num_lanes;
     ints(k).connections = zeros(8*num,2);
     
     if all_straight
