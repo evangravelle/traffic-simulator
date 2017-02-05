@@ -1,13 +1,13 @@
-function hnd = DrawLights(lights_state, inter, hnd)
+function hnd = DrawLights(lights_state, int, hnd)
 
 diam = 5;
-from_center = inter.ur(1);
+from_center = int.ur(1);
 delete(hnd)
 
-pos1 = [inter.center + [0 from_center] - diam/2*ones(1,2), diam, diam];
-pos2 = [inter.center + [from_center 0] - diam/2*ones(1,2), diam, diam];
-pos3 = [inter.center + [0 -from_center] - diam/2*ones(1,2), diam, diam];
-pos4 = [inter.center + [-from_center 0] - diam/2*ones(1,2), diam, diam];
+pos1 = [int.center + [0 from_center] - diam/2*ones(1,2), diam, diam];
+pos2 = [int.center + [from_center 0] - diam/2*ones(1,2), diam, diam];
+pos3 = [int.center + [0 -from_center] - diam/2*ones(1,2), diam, diam];
+pos4 = [int.center + [-from_center 0] - diam/2*ones(1,2), diam, diam];
 
 hnd = [rectangle('Position', pos1, 'Curvature', [1 1], ...
   'FaceColor', lights_state(1)), ...

@@ -1,7 +1,7 @@
 % Written by Evan Gravelle and Julio Martinez
 % 12/11/16
 
-function FIG = DrawIntersection(inter)
+function FIG = DrawIntersections(inter)
 %% Draw Intersection
 % Figure properties
 FIG = figure;

@@ -1,7 +1,7 @@
 % Written by Evan Gravelle and Julio Martinez
 % 12/11/16
 
-function vehicle = DrawAllVehicles(inter, vehicle, road, lane, time, max_speed)
+function vehicle = DrawAllVehicles(inter, vehicle, int, road, lane, time, max_speed)
     
     %number of Vehicles in Queue
     if ~isfield(vehicle, 'length')
@@ -24,7 +24,7 @@ function vehicle = DrawAllVehicles(inter, vehicle, road, lane, time, max_speed)
         % make assignments and draw
 
         for j = 1:num_spawned
-            [vehicle] = MakeVehicle(inter, vehicle, in_queue + j, lane(j), road(j), time, max_speed);
+            [vehicle] = MakeVehicle(inter, vehicle, in_queue + j, int(j), road(j), lane(j), time, max_speed);
             vehicle(in_queue+j).figure = DrawVehicle(vehicle(in_queue+j));
         end
     end

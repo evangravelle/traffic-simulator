@@ -7,7 +7,7 @@ hold on;
 % Initialize parameters
 delta_t = .1;
 num_iter = 3000;
-num_intersections = 1;
+num_intersections = 2;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'cycle'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
@@ -34,19 +34,19 @@ else
     turn_length = [(pi/2)*(lane_width/2) 2*num_lanes*lane_width (pi/2)*(7*lane_width/2)];
 end
 
-inter = MakeIntersection(num_intersections, lane_width, lane_length, num_lanes, all_straight);
-DrawIntersection(inter);
+ints = MakeIntersections(num_intersections, lane_width, lane_length, num_lanes, all_straight);
+DrawIntersection(ints);
 hold on
 
 rng(1000)
-[road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, 0, delta_t, spawn_type);
+[int,road,lane] = SpawnVehicles(spawn_rate, num_intersections, num_roads, num_lanes, 0, delta_t, spawn_type);
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
 vehicle = struct;
-vehicle = DrawAllVehicles(inter, vehicle, road, lane, time_enter, max_speed);
+vehicle = DrawAllVehicles(inter, vehicle, int, road, lane, time_enter, max_speed);
 % This keeps track of last vehicle to spawn in each lane, to check for
 % collisions
-latest_spawn = zeros(num_roads, num_lanes);
+latest_spawn = zeros(num_intersections, num_roads, num_lanes);
 
 % Play this mj2 file with VLC
 % vid_obj = VideoWriter('movie.avi','Archival');
@@ -67,7 +67,8 @@ previous_state = 1;
 title_str = 'green light on vertical road';
 lights_state = 'grgr';
 hnd = [];
-DrawLights(lights_state, inter, hnd);
+DrawLights(lights_state, inter(1), hnd);
+DrawLights(lights_state, inter(2), hnd);
 
 switch_log = [];
 W = zeros(num_iter,2);
@@ -225,7 +226,7 @@ for t = delta_t*(1:num_iter)
     end
     
     % Now spawn new vehicles
-    [road,lane] = SpawnVehicles(spawn_rate, num_roads, num_lanes, t, delta_t, spawn_type);
+    [road,lane] = SpawnVehicles(spawn_rate, num_intersections, num_roads, num_lanes, t, delta_t, spawn_type);
     if isempty(fieldnames(vehicle(1))) 
         ctr = 0; % overwrites the empty vehicle
     else
