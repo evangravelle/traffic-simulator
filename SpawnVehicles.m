@@ -45,7 +45,7 @@ elseif strcmp(type, 'poisson')
         % multi_intersection
         if num_int >= 2
             roads = randi([1,num_roads-1], 1 ,num_vehicles);
-            roads(road==2 & int==1) = 1;
+            roads(roads==2 & ints==1) = 4;
         else
             roads = randi([1,num_roads], 1 ,num_vehicles);
         end

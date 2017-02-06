@@ -4,13 +4,15 @@
 function ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, all_straight)
 % Declare structures
 ints(num_int) = struct;
-ints.roads.lanes = struct;
-ints.lights = struct;
-ints.connections = struct;
-ints.ul = struct;
-ints.ur = struct;
-ints.bl = struct;
-ints.br = struct;
+for k = 1:num_int
+    ints(k).roads.lanes = struct;
+    ints(k).lights = struct;
+    ints(k).connections = struct;
+    ints(k).ul = struct;
+    ints(k).ur = struct;
+    ints(k).bl = struct;
+    ints(k).br = struct;
+end
 
 % Make the Intersection
 for k = 1:num_int
@@ -34,7 +36,7 @@ for k = 1:num_int
             ints(k).roads(j).orientation = 'vertical';
             %Road Starting Point and Ending Point
             ints(k).roads(j).starting_point = ints(k).center(2) + ...
-                ints(k).road(j).num_lanes*ints(k).roads(j).lane_width;
+                ints(k).roads(j).num_lanes*ints(k).roads(j).lane_width;
             ints(k).roads(j).ending_point = ints(k).roads(j).starting_point ...
                 + ints(k).roads(j).length;
             %Define incoming lanes
@@ -84,7 +86,7 @@ for k = 1:num_int
             ints(k).roads(j).orientation = 'vertical';
             %Road Starting Point and Ending Point
             ints(k).roads(j).starting_point = ints(k).center(2) - ...
-                ints(k).road(j).num_lanes*ints(k).roads(j).lane_width;
+                ints(k).roads(j).num_lanes*ints(k).roads(j).lane_width;
             ints(k).roads(j).ending_point = ints(k).roads(j).starting_point ...
                 - ints(k).roads(j).length;
             %Define incoming lanes
@@ -110,7 +112,7 @@ for k = 1:num_int
             %Road Starting Point and Ending Point
             ints(k).roads(j).starting_point = ints(k).center(1) - ...
                 ints(k).roads(j).num_lanes*ints(k).roads(j).lane_width;
-            ints(k).road(j).ending_point = ints(k).roads(j).starting_point ...
+            ints(k).roads(j).ending_point = ints(k).roads(j).starting_point ...
                 - ints(k).roads(j).length;
             %Define incoming lanes
             for i = 1:ints(k).roads(j).num_lanes
@@ -138,32 +140,32 @@ for k = 1:num_int
         
         % straights
         for i = 1:num
-            ints(k).connections(i) = [1, 6*num-i+1];
-            ints(k).connections(2*num+i) = [1, 8*num-i+1];
-            ints(k).connections(4*num+i) = [1, 2*num-i+1];
-            ints(k).connections(6*num+i) = [1, 4*num-i+1];
+            ints(k).connections(i,:) = [k, 6*num-i+1];
+            ints(k).connections(2*num+i,:) = [k, 8*num-i+1];
+            ints(k).connections(4*num+i,:) = [k, 2*num-i+1];
+            ints(k).connections(6*num+i,:) = [k, 4*num-i+1];
         end
         
     else
     
         % right turns
-        ints(k).connections(1) = [1, 8*num];
-        ints(k).connections(2*num+1) = [1, 2*num];
-        ints(k).connections(4*num+1) = 4*num];
-        ints(k).connections(6*num+1) = 6*num];
+        ints(k).connections(1,:) = [k, 8*num];
+        ints(k).connections(2*num+1,:) = [k, 2*num];
+        ints(k).connections(4*num+1,:) = [k, 4*num];
+        ints(k).connections(6*num+1,:) = [k, 6*num];
 
         % left turns
-        ints(k).connections(num) = [1, 3*num+1];
-        ints(k).connections(3*num) = [1, 5*num+1];
-        ints(k).connections(5*num) = [1, 7*num+1];
-        ints(k).connections(7*num) = [1, num+1];
+        ints(k).connections(num,:) = [k, 3*num+1];
+        ints(k).connections(3*num,:) = [k, 5*num+1];
+        ints(k).connections(5*num,:) = [k, 7*num+1];
+        ints(k).connections(7*num,:) = [k, num+1];
 
         % straights
         for i = 2:num-1
-            ints(k).connections(i) = [1, 6*num-i+1];
-            ints(k).connections(2*num+i) = [1, 8*num-i+1];
-            ints(k).connections(4*num+i) = [1, 2*num-i+1];
-            ints(k).connections(6*num+i) = [1, 4*num-i+1];
+            ints(k).connections(i,:) = [k, 6*num-i+1];
+            ints(k).connections(2*num+i,:) = [k, 8*num-i+1];
+            ints(k).connections(4*num+i,:) = [k, 2*num-i+1];
+            ints(k).connections(6*num+i,:) = [k, 4*num-i+1];
         end
     
     end
@@ -172,8 +174,8 @@ end
 
 % defines lane connections across intersections
 for i = 1:num
-    ints(1).connections(3*num+i) = [2, 7*num+1-i];
-    ints(2).connections(7*num+i) = [1, 3*num+1-i];
+    ints(1).connections(3*num+i,:) = [2, 7*num+1-i];
+    ints(2).connections(7*num+i,:) = [1, 3*num+1-i];
 end
 
 

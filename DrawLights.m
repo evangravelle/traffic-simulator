@@ -3,12 +3,12 @@ function hnd = DrawLights(ints, hnd)
 diam = 5;
 delete(hnd)
 hnd = [];
+from_center = ints(1).ur(1);
 for k = 1:length(ints)
-    from_center = ints(k).ur(1);
-    pos1 = [ints(k).center + [0 from_center] - diam/2*ones(1,2), diam, diam];
-    pos2 = [ints(k).center + [from_center 0] - diam/2*ones(1,2), diam, diam];
-    pos3 = [ints(k).center + [0 -from_center] - diam/2*ones(1,2), diam, diam];
-    pos4 = [ints(k).center + [-from_center 0] - diam/2*ones(1,2), diam, diam];
+    pos1 = [ints(k).center + [0, from_center] - diam/2*ones(1,2), diam, diam];
+    pos2 = [ints(k).center + [from_center, 0] - diam/2*ones(1,2), diam, diam];
+    pos3 = [ints(k).center + [0, -from_center] - diam/2*ones(1,2), diam, diam];
+    pos4 = [ints(k).center + [-from_center, 0] - diam/2*ones(1,2), diam, diam];
     
     hnd = [hnd, rectangle('Position', pos1, 'Curvature', [1 1], ...
         'FaceColor', ints(k).lights(1)), ...

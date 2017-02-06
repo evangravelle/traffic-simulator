@@ -1,14 +1,13 @@
 % Written by Evan Gravelle and Julio Martinez
 % 12/11/16
-W;
 clear; clc; close all
-hold on;
+% hold on;
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 3000;
+num_iter = 600;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-policy = 'cycle'; % the options are 'custom' or 'cycle'
+policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 phase_length = 30; % time of whole intersection cycle
@@ -35,8 +34,8 @@ else
 end
 
 ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, all_straight);
-DrawIntersection(ints);
-hold on
+DrawIntersections(ints);
+% hold on
 
 rng(1000)
 [ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, 0, delta_t, spawn_type);
@@ -62,9 +61,6 @@ end
 W = @(t) .05 * t^2;
 
 switch_time = Inf;
-inter(1).green = [1 3];
-previous_state = 1;
-title_str = 'green light on vertical road';
 hnd = [];
 hnd = DrawLights(ints, hnd);
 
@@ -144,7 +140,7 @@ for t = delta_t*(1:num_iter)
                     end
                     ints(k).lights = 'yryr';
                     hnd = DrawLights(ints, hnd);
-                elseif previous_state == 1 && (weight(k,ctr,1) - weight(k,ctr,2))/weight(k,ctr,2) > switch_threshold
+                elseif strcmp(ints(k).lights,'rgrg') && (weight(k,ctr,1) - weight(k,ctr,2))/weight(k,ctr,2) > switch_threshold
                     switch_time = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -159,23 +155,25 @@ for t = delta_t*(1:num_iter)
     end
 
     % INCOMPLETE, NEED TO ACCOUNT FOR MULTIPLE INTERSECTIONS
-    title('Traffic simulation')
+    title_str = sprintf('Time = %.2f', t);
+    title(title_str)
     text_box = uicontrol('style','text');
     if strcmp(policy, 'custom')
-        text_str = ['Custom Wait Time Policy     ';
-            '  vertical weight = ', sprintf('%8.2f',weight(1,ctr,1));
-            'horizontal weight = ', sprintf('%8.2f',weight(1,ctr,2))];
+        text_str = ['Custom Wait Time Policy      '];
     elseif strcmp(policy, 'cycle')
-        text_str = ['Fixed Cycle Policy          ';
-            '  vertical weight = ', sprintf('%8.2f',weight(1,ctr,1)); 
-            'horizontal weight = ', sprintf('%8.2f',weight(1,ctr,2))];
-    else
-        text_str = ['  vertical weight =   ', sprintf('%8.2f',weight(1,ctr,1)); 
-            'horizontal weight = ', sprintf('%8.2f',weight(1,ctr,2))];
+        text_str = ['Fixed Cycle Policy           '];
+    end
+    text_str = [text_str;
+      '  vertical weight1 = ', sprintf('%8.2f',weight(1,ctr,1)); 
+      'horizontal weight1 = ', sprintf('%8.2f',weight(1,ctr,2))];
+    if length(ints) == 2
+        text_str = [text_str;
+          '  vertical weight2 = ', sprintf('%8.2f',weight(2,ctr,1));
+          'horizontal weight2 = ', sprintf('%8.2f',weight(2,ctr,2))];
     end
     set(text_box,'String',text_str)
     set(text_box,'Units','characters')
-    set(text_box,'Position', [6 6 50 5])
+    set(text_box,'Position', [70 15 50 8])
     
     % set(textBox,'Position',[200 200 100 50])
     
@@ -202,28 +200,26 @@ for t = delta_t*(1:num_iter)
     end
     
     % Now spawn new vehicles
-    [ints,roads,lanes] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, t, delta_t, spawn_type);
+    [ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, t, delta_t, spawn_type);
     if isempty(fieldnames(vehicles(1))) 
         ctr = 0; % overwrites the empty vehicle
     else
         ctr = length(vehicles); % count number of cars already spawned
     end
-    if ~isnan(road) % if spawned at least one
-        for s = 1:length(roads) % assign every car its road and lane
+    if ~isnan(roads_temp) % if spawned at least one
+        for s = 1:length(roads_temp) % assign every car its road and lane
             % If the last vehicle to spawn in the lane is too close, dont
             % spawn
-            if latest_spawn(ints(s),roads(s),lanes(s)) == 0 || ...
-              norm(vehicles(latest_spawn(ints(s),roads(s),lanes(s))).position - ...
-              vehicles(latest_spawn(ints(s),roads(s),lanes(s))).starting_point, 2) > ...
-              4*vehicles(latest_spawn(ints(s),roads(s),lanes(s))).length
-                [vehicles] = MakeVehicle(inter, vehicles, (ctr + 1), ints(s), lanes(s), roads(s), t, max_speed);
-                latest_spawn(road(s),lane(s)) = ctr + 1;
+            if latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s)) == 0 || ...
+              norm(vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).position - ...
+              vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).starting_point, 2) > ...
+              4*vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).length
+                vehicles = MakeVehicle(ints, vehicles, (ctr + 1), ints_temp(s), roads_temp(s), lanes_temp(s), t, max_speed);
+                latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s)) = ctr + 1;
                 ctr = ctr + 1;
             end
         end
     end
-    % disp('After MakeVehicle')
-    % toc
     
     if mod(t, delta_t*num_iter/10) == 0
         fprintf('Time = %f\n', t);

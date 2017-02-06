@@ -18,9 +18,9 @@ function vehicles = DrawAllVehicles(ints, vehicles, ints_temp, roads_temp, lanes
     end
     
     % Now assign and draw new vehicles
-    if isnan(road) == false
+    if isnan(roads_temp) == false
         % number of new Vehicles Spawned
-        num_spawned = length(road);
+        num_spawned = length(roads_temp);
         % make assignments and draw
 
         for j = 1:num_spawned

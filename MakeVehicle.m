@@ -26,11 +26,11 @@ vehicles(i).lane = lane;
 vehicles(i).road = road;
 vehicles(i).int = int;
 
-if strcmp(ints(int).roads(road).orientation,'vertical') == 1
+if strcmp(ints(int).roads(road).orientation,'vertical')
     vehicles(i).starting_point = [ints(int).roads(road).lanes(lane).center,...
         ints(int).roads(road).ending_point];
     vehicles(i).orientation = pi/2;
-elseif strcmp(ints(int).roads(road).orientation,'horizontal') == 1
+elseif strcmp(ints(int).roads(road).orientation,'horizontal')
     vehicles(i).starting_point = [ints(int).roads(road).ending_point, ...
         ints(int).roads(road).lanes(lane).center];
     vehicles(i).orientation = 0;
