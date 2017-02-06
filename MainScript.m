@@ -60,14 +60,14 @@ end
 % W = @(t) c(1) * (t + c(2))^c(3) + c(4);
 W = @(t) .05 * t^2;
 
-switch_time = Inf;
+switch_time = Inf*ones(num_int);
 hnd = [];
 hnd = DrawLights(ints, hnd);
 
 switch_log1 = [];
 switch_log2 = [];
 weight = zeros(num_int,num_iter,2);
-ctr = 1;
+w_ind = 1;
 % Run simulation 
 for t = delta_t*(1:num_iter)
     
@@ -76,9 +76,9 @@ for t = delta_t*(1:num_iter)
         for v = 1:length(vehicles)
             if (vehicles(v).time_enter ~= -1 && vehicles(v).time_leave == -1 && ismember(vehicles(v).lane,1:num_lanes))
                 if mod(vehicles(v).road, 2) == 1
-                    weight(vehicles(v).int,ctr,1) = weight(vehicles(v).int,ctr,1) + W(vehicles(v).wait);
+                    weight(vehicles(v).int,w_ind,1) = weight(vehicles(v).int,w_ind,1) + W(vehicles(v).wait);
                 else
-                    weight(vehicles(v).int,ctr,2) = weight(vehicles(v).int,ctr,2) + W(vehicles(v).wait);
+                    weight(vehicles(v).int,w_ind,2) = weight(vehicles(v).int,w_ind,2) + W(vehicles(v).wait);
                 end
             end
         end
@@ -109,7 +109,7 @@ for t = delta_t*(1:num_iter)
             
         elseif strcmp(policy, 'custom')
             % if light is yellow
-            if switch_time < yellow_time
+            if switch_time(k) < yellow_time
 %                 if strcmp(ints(k).lights, 'grgr')
 %                     if ~strcmp(ints(k).lights, 'ryry')
 %                         ints(k).lights = 'ryry';
@@ -122,7 +122,7 @@ for t = delta_t*(1:num_iter)
 %                     end
 %                 end
             % if stuck in green
-            elseif switch_time < yellow_time + min_time
+            elseif switch_time(k) < yellow_time + min_time
                 if strcmp(ints(k).lights,'yryr')
                     ints(k).lights = 'rgrg';
                     hnd = DrawLights(ints, hnd);
@@ -131,8 +131,8 @@ for t = delta_t*(1:num_iter)
                     hnd = DrawLights(ints, hnd);
                 end
             else  % if switching is an option
-                if strcmp(ints(k).lights,'grgr') && (weight(k,ctr,2) - weight(k,ctr,1))/weight(k,ctr,1) > switch_threshold
-                    switch_time = 0;
+                if strcmp(ints(k).lights,'grgr') && (weight(k,w_ind,2) - weight(k,w_ind,1))/weight(k,w_ind,1) > switch_threshold
+                    switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
                     elseif k == 2
@@ -140,8 +140,8 @@ for t = delta_t*(1:num_iter)
                     end
                     ints(k).lights = 'yryr';
                     hnd = DrawLights(ints, hnd);
-                elseif strcmp(ints(k).lights,'rgrg') && (weight(k,ctr,1) - weight(k,ctr,2))/weight(k,ctr,2) > switch_threshold
-                    switch_time = 0;
+                elseif strcmp(ints(k).lights,'rgrg') && (weight(k,w_ind,1) - weight(k,w_ind,2))/weight(k,w_ind,2) > switch_threshold
+                    switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
                     elseif k == 2
@@ -164,12 +164,12 @@ for t = delta_t*(1:num_iter)
         text_str = ['Fixed Cycle Policy           '];
     end
     text_str = [text_str;
-      '  vertical weight1 = ', sprintf('%8.2f',weight(1,ctr,1)); 
-      'horizontal weight1 = ', sprintf('%8.2f',weight(1,ctr,2))];
+      '  vertical weight1 = ', sprintf('%8.2f',weight(1,w_ind,1)); 
+      'horizontal weight1 = ', sprintf('%8.2f',weight(1,w_ind,2))];
     if length(ints) == 2
         text_str = [text_str;
-          '  vertical weight2 = ', sprintf('%8.2f',weight(2,ctr,1));
-          'horizontal weight2 = ', sprintf('%8.2f',weight(2,ctr,2))];
+          '  vertical weight2 = ', sprintf('%8.2f',weight(2,w_ind,1));
+          'horizontal weight2 = ', sprintf('%8.2f',weight(2,w_ind,2))];
     end
     set(text_box,'String',text_str)
     set(text_box,'Units','characters')
@@ -226,7 +226,7 @@ for t = delta_t*(1:num_iter)
     end
 
     switch_time = switch_time + delta_t;
-    ctr = ctr + 1;
+    w_ind = w_ind + 1;
 end
 
 if make_video

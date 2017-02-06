@@ -33,16 +33,31 @@ for v = 1:V
           vehicles(v).lane > 0
       
             % if there is a lane to connect to and same int
+            new_int = ints(current_int).connections(lane_global(v),1);
             lane_global_new = ints(current_int).connections(lane_global(v),2);
-            if (lane_global_new ~= 0 && vehicles(v).int == ints(current_int).connections(lane_global(v),1))
+            if (lane_global_new ~= 0 && vehicles(v).int == new_int)
                 vehicles(v).dist_in_lane = vehicles(v).dist_in_lane - ints(current_int).roads(current_road).length;
                 % negative lane indicates inside intersections
                 vehicles(v).lane = -vehicles(v).lane;
+                
             % if there is a lane to connect to and different int
-            elseif (lane_global_new ~= 0 && vehicles(v).int ~= ints(current_int).connections(lane_global(v),1))
+            elseif (lane_global_new ~= 0 && vehicles(v).int ~= new_int)
+
                 vehicles(v).dist_in_lane = vehicles(v).dist_in_lane - ints(current_int).roads(current_road).length;
-                vehicles(v).int = ints(current_int).connections(lane_global(v),1);
+                vehicles(v).int = new_int;
+                vehicles(v).road = mod(vehicles(v).road + 1, 4) + 1;
                 vehicles(v).lane = mod(lane_global_new - 1, 2*ints(1).roads(current_road).num_lanes) + 1;
+                
+                if strcmp(ints(new_int).roads(vehicles(v).road).orientation,'vertical')
+                    vehicles(v).starting_point = [0 + ... % ints(new_int).center(1)
+                      ints(new_int).roads(vehicles(v).road).lanes(vehicles(v).lane).center, ...
+                      ints(new_int).roads(vehicles(v).road).ending_point];
+                elseif strcmp(ints(new_int).roads(vehicles(v).road).orientation,'horizontal')
+                    vehicles(v).starting_point = [0 + ... % ints(new_int).center(1)
+                      ints(new_int).roads(vehicles(v).road).ending_point, ...
+                      ints(new_int).roads(vehicles(v).road).lanes(vehicles(v).lane).center];
+                end
+
             else
                 % delete vehicle here?
                 vehicles(v).dist_in_lane = 0;
@@ -65,13 +80,13 @@ for v = 1:V
                 vehicles(v).lane = mod(lane_global_new - 1, 2*ints(1).roads(current_road).num_lanes) + 1;
                 vehicles(v).road = mod(vehicles(v).road + 1, 4) + 1;
                 
-                if strcmp(ints(current_int).roads(vehicles(v).road).orientation,'vertical') == 1
-                    vehicles(v).starting_point = [ints(current_int).roads(vehicles(v).road).lanes(vehicles(v).lane).center, ...
-                      ints(current_int).roads(vehicles(v).road).starting_point];
+                if strcmp(ints(int_new).roads(vehicles(v).road).orientation,'vertical')
+                    vehicles(v).starting_point = [ints(int_new).roads(vehicles(v).road).lanes(vehicles(v).lane).center, ...
+                      ints(int_new).roads(vehicles(v).road).starting_point];
                     vehicles(v).orientation = pi/2;
-                elseif strcmp(ints(current_int).roads(vehicles(v).road).orientation,'horizontal') == 1
-                    vehicles(v).starting_point = [ints(current_int).roads(vehicles(v).road).starting_point, ...
-                      ints(current_int).roads(vehicles(v).road).lanes(vehicles(v).lane).center];
+                elseif strcmp(ints(int_new).roads(vehicles(v).road).orientation,'horizontal')
+                    vehicles(v).starting_point = [ints(int_new).roads(vehicles(v).road).starting_point, ...
+                      ints(int_new).roads(vehicles(v).road).lanes(vehicles(v).lane).center];
                     vehicles(v).orientation = 0;
                 end
 
