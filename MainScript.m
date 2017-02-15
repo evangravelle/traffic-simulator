@@ -157,25 +157,23 @@ for t = delta_t*(1:num_iter)
     % INCOMPLETE, NEED TO ACCOUNT FOR MULTIPLE INTERSECTIONS
     title_str = sprintf('Time = %.2f', t);
     title(title_str)
-    text_box = uicontrol('style','text');
-    if strcmp(policy, 'custom')
-        text_str = ['Custom Wait Time Policy      '];
-    elseif strcmp(policy, 'cycle')
-        text_str = ['Fixed Cycle Policy           '];
-    end
-    text_str = [text_str;
-      '  vertical weight1 = ', sprintf('%8.2f',weight(1,w_ind,1)); 
-      'horizontal weight1 = ', sprintf('%8.2f',weight(1,w_ind,2))];
-    if length(ints) == 2
-        text_str = [text_str;
-          '  vertical weight2 = ', sprintf('%8.2f',weight(2,w_ind,1));
-          'horizontal weight2 = ', sprintf('%8.2f',weight(2,w_ind,2))];
-    end
-    set(text_box,'String',text_str)
-    set(text_box,'Units','characters')
-    set(text_box,'Position', [70 15 50 8])
-    
-    % set(textBox,'Position',[200 200 100 50])
+%     text_box = uicontrol('style','text');
+%     if strcmp(policy, 'custom')
+%         text_str = ['Custom Wait Time Policy      '];
+%     elseif strcmp(policy, 'cycle')
+%         text_str = ['Fixed Cycle Policy           '];
+%     end
+%     text_str = [text_str;
+%       '  vertical weight1 = ', sprintf('%8.2f',weight(1,w_ind,1)); 
+%       'horizontal weight1 = ', sprintf('%8.2f',weight(1,w_ind,2))];
+%     if length(ints) == 2
+%         text_str = [text_str;
+%           '  vertical weight2 = ', sprintf('%8.2f',weight(2,w_ind,1));
+%           'horizontal weight2 = ', sprintf('%8.2f',weight(2,w_ind,2))];
+%     end
+%     set(text_box,'String',text_str)
+%     set(text_box,'Units','characters')
+%     set(text_box,'Position', [70 15 50 8])
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicles))
