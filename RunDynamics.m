@@ -24,6 +24,7 @@ for v = 1:V
         current_road = vehicles(v).road;
         current_lane = vehicles(v).lane;
         current_int = vehicles(v).int;
+        num_lanes = ints(current_int).roads(vehicles(v).road).num_lanes;
         
         % calculate linear distance travelled
         vehicles(v).dist_in_lane = vehicles(v).dist_in_lane + vehicles(v).velocity*delta_t;
@@ -46,7 +47,7 @@ for v = 1:V
                 vehicles(v).dist_in_lane = vehicles(v).dist_in_lane - ints(current_int).roads(current_road).length;
                 vehicles(v).int = new_int;
                 vehicles(v).road = mod(vehicles(v).road + 1, 4) + 1;
-                vehicles(v).lane = mod(lane_global_new - 1, 2*ints(1).roads(current_road).num_lanes) + 1;
+                vehicles(v).lane = mod(lane_global_new - 1, num_lanes) + 1;
                 
                 if strcmp(ints(new_int).roads(vehicles(v).road).orientation,'vertical')
                     vehicles(v).starting_point = [0 + ... % ints(new_int).center(1)
@@ -76,9 +77,9 @@ for v = 1:V
                 
                 vehicles(v).dist_in_lane = vehicles(v).dist_in_lane - turn_length(-vehicles(v).lane);
                 
-                % THIS IS FOR STRAIGHT ONLY
-                vehicles(v).lane = mod(lane_global_new - 1, 2*ints(1).roads(current_road).num_lanes) + 1;
-                vehicles(v).road = mod(vehicles(v).road + 1, 4) + 1;
+                vehicles(v).lane = mod(lane_global_new - 1, 2*num_lanes) + 1;
+                % vehicles(v).road = mod(vehicles(v).road + 1, 4) + 1;
+                vehicles(v).road = floor((lane_global_new-1)/(2*num_lanes)) + 1;
                 
                 if strcmp(ints(int_new).roads(vehicles(v).road).orientation,'vertical')
                     vehicles(v).starting_point = [ints(int_new).roads(vehicles(v).road).lanes(vehicles(v).lane).center, ...
@@ -108,9 +109,9 @@ for v = 1:V
               (vehicles(v).dist_in_lane + ints(current_int).roads(vehicles(v).road).length);
         else  % If in intersection turning
             r = turn_radius(-vehicles(v).lane);
-            dth = (pi/2)*vehicles(v).dist_in_lane/turn_length(-vehicles(v).lane);
+            dth = .5*pi*vehicles(v).dist_in_lane/turn_length(-vehicles(v).lane);
             
-            if vehicles(v).lane == -2
+            if vehicles(v).lane ~= -1 && vehicles(v).lane ~= -num_lanes
                 if vehicles(v).road == 1
                     vehicles(v).position = vehicles(v).starting_point + [0, -vehicles(v).dist_in_lane];
                 elseif vehicles(v).road == 2
@@ -124,7 +125,7 @@ for v = 1:V
                 th = 0 - dth;
                 vehicles(v).position = ints(current_int).ul + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = pi/2 - dth;
-            elseif vehicles(v).road == 1 && vehicles(v).lane == -3
+            elseif vehicles(v).road == 1 && vehicles(v).lane == -num_lanes
                 th = pi + dth;
                 vehicles(v).position = ints(current_int).ur + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = pi/2 + dth;
@@ -132,7 +133,7 @@ for v = 1:V
                 th = 3*pi/2 - dth;
                 vehicles(v).position = ints(current_int).ur + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = 0 - dth;
-            elseif vehicles(v).road == 2 && vehicles(v).lane == -3
+            elseif vehicles(v).road == 2 && vehicles(v).lane == -num_lanes
                 th = pi/2 + dth;
                 vehicles(v).position = ints(current_int).br + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = 0 + dth;
@@ -140,7 +141,7 @@ for v = 1:V
                 th = pi - dth;
                 vehicles(v).position = ints(current_int).br + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = pi/2 - dth;
-            elseif vehicles(v).road == 3 && vehicles(v).lane == -3
+            elseif vehicles(v).road == 3 && vehicles(v).lane == -num_lanes
                 th = 0 + dth;
                 vehicles(v).position = ints(current_int).bl + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = pi/2 + dth;
@@ -148,7 +149,7 @@ for v = 1:V
                 th = pi/2 - dth;
                 vehicles(v).position = ints(current_int).bl + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = 0 - dth;
-            elseif vehicles(v).road == 4 && vehicles(v).lane == -3
+            elseif vehicles(v).road == 4 && vehicles(v).lane == -num_lanes
                 th = 3*pi/2 + dth;
                 vehicles(v).position = ints(current_int).ul + [r*cos(th), r*sin(th)];
                 vehicles(v).orientation = 0 + dth;
@@ -161,8 +162,7 @@ for v = 1:V
         % After speeding up
         v2 = vehicles(v).velocity + vehicles(v).max_accel*delta_t;
         
-        int_length = 2 * ints(current_int).roads(current_road).lane_width * ...
-          ints(current_int).roads(current_road).num_lanes;
+        int_length = 2 * ints(current_int).roads(current_road).lane_width * num_lanes;
         int_dist = ints(current_int).roads(current_road).length - vehicles(v).dist_in_lane;
         brake_dist_i = 0.5*vehicles(v).velocity^2/abs(vehicles(v).min_accel); 
         
@@ -214,8 +214,9 @@ for v = 1:V
         
         % if vehicle is approaching a non-green light
         v4 = vehicles(v).max_velocity;
-        if (ismember(vehicles(v).lane,1:ints(current_int).roads(vehicles(v).road).num_lanes) && ...
-          ints(vehicles(v).int).lights(vehicles(v).road) ~= 'g')
+        veh_phase = 2*vehicles(v).road - floor(vehicles(v).lane/num_lanes);
+        if (ismember(vehicles(v).lane,1:num_lanes) && ...
+          ints(vehicles(v).int).lights(veh_phase) ~= 'g')
       
             % if the vehicle can make it through the intersection
             % if vehicle(i).velocity * yellow_time > inter_dist + inter_length && false

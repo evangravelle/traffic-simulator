@@ -15,7 +15,7 @@ min_time = 10; % minimum time spent in a phase
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .2; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
-all_straight = true; % true if no turns exist
+all_straight = false; % true if no turns exist
 num_int = 2; % number of intersections
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
@@ -29,8 +29,10 @@ if all_straight
     turn_length = 2*num_lanes*lane_width*ones(num_lanes,1);
 else
     straight_list = 2:num_lanes-1;
-    turn_radius = [(lane_width/2) Inf (7*lane_width/2)];
-    turn_length = [(pi/2)*(lane_width/2) 2*num_lanes*lane_width (pi/2)*(7*lane_width/2)];
+    turn_radius = [.5*lane_width, Inf, (num_lanes+.5)*lane_width];
+    turn_length = [pi*.5*lane_width, 2*num_lanes*lane_width, pi*(num_lanes+.5)*lane_width];
+    next_light = [4, 3, 2, 1, 8, 7, 6, 5];
+    phases = [1 2;1 3;2 4;3 4;5 6;5 7;6 8;7 8];
 end
 
 ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, all_straight);
@@ -58,36 +60,35 @@ end
 % These parameters solve the equations for psi = 2 and T = 10
 % c = [.54 1.5 1.5 -.95];
 % W = @(t) c(1) * (t + c(2))^c(3) + c(4);
+% W = @(t) .05 * (t^2 + t);
+% Weight function
 W = @(t) .05 * t^2;
 
 switch_time = Inf*ones(num_int);
 hnd = [];
 hnd = DrawLights(ints, hnd);
-
 switch_log1 = [];
 switch_log2 = [];
-weight = zeros(num_int,num_iter,2);
+if all_straight
+    num_w = 2;
+else
+    num_w = 8;
+end
+weights = zeros(num_int,num_iter,num_w);
+
 w_ind = 1;
-% Run simulation 
+% Run simulation
 for t = delta_t*(1:num_iter)
     
-    % Calculates weight in each lane
+    % Calculates weights in each lane
     if ~isempty(fieldnames(vehicles))
-        for v = 1:length(vehicles)
-            if (vehicles(v).time_enter ~= -1 && vehicles(v).time_leave == -1 && ismember(vehicles(v).lane,1:num_lanes))
-                if mod(vehicles(v).road, 2) == 1
-                    weight(vehicles(v).int,w_ind,1) = weight(vehicles(v).int,w_ind,1) + W(vehicles(v).wait);
-                else
-                    weight(vehicles(v).int,w_ind,2) = weight(vehicles(v).int,w_ind,2) + W(vehicles(v).wait);
-                end
-            end
-        end
+        weights(:,w_ind,:) = CalcWeights(vehicles, num_int, num_w, num_lanes, W);
     end
     
     % Yellow light time needs to be function of max velocity! Not a
     % function of phase_length
     for k = 1:length(ints)
-        if strcmp(policy, 'cycle')
+        if strcmp(policy, 'cycle') && all_straight == true
             if mod(t,phase_length) < phase_length/2 - yellow_time
                 if ~strcmp(ints(k).lights, 'grgr')
                     ints(k).lights = 'grgr';
@@ -107,21 +108,11 @@ for t = delta_t*(1:num_iter)
             end
             hnd = DrawLights(ints, hnd);
             
-        elseif strcmp(policy, 'custom')
+        elseif strcmp(policy, 'custom') && all_straight == true
             % if light is yellow
             if switch_time(k) < yellow_time
-%                 if strcmp(ints(k).lights, 'grgr')
-%                     if ~strcmp(ints(k).lights, 'ryry')
-%                         ints(k).lights = 'ryry';
-%                         hnd = DrawLights(ints, hnd);
-%                     end
-%                 elseif previous_state == 2
-%                     if ~strcmp(ints(k).lights, 'yryr')
-%                         ints(k).lights = 'yryr';
-%                         hnd = DrawLights(ints, hnd);
-%                     end
-%                 end
-            % if stuck in green
+                % do nothing
+                % if stuck in green
             elseif switch_time(k) < yellow_time + min_time
                 if strcmp(ints(k).lights,'yryr')
                     ints(k).lights = 'rgrg';
@@ -130,8 +121,9 @@ for t = delta_t*(1:num_iter)
                     ints(k).lights = 'grgr';
                     hnd = DrawLights(ints, hnd);
                 end
-            else  % if switching is an option
-                if strcmp(ints(k).lights,'grgr') && (weight(k,w_ind,2) - weight(k,w_ind,1))/weight(k,w_ind,1) > switch_threshold
+                % if switching is an option
+            else
+                if strcmp(ints(k).lights,'grgr') && (weights(k,w_ind,2) - weights(k,w_ind,1))/weights(k,w_ind,1) > switch_threshold
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -140,7 +132,7 @@ for t = delta_t*(1:num_iter)
                     end
                     ints(k).lights = 'yryr';
                     hnd = DrawLights(ints, hnd);
-                elseif strcmp(ints(k).lights,'rgrg') && (weight(k,w_ind,1) - weight(k,w_ind,2))/weight(k,w_ind,2) > switch_threshold
+                elseif strcmp(ints(k).lights,'rgrg') && (weights(k,w_ind,1) - weights(k,w_ind,2))/weights(k,w_ind,2) > switch_threshold
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -151,29 +143,80 @@ for t = delta_t*(1:num_iter)
                     hnd = DrawLights(ints, hnd);
                 end
             end
+            
+        elseif strcmp(policy, 'custom') && all_straight == false
+            if switch_time(k) < yellow_time
+                % do nothing
+                % if stuck in green
+            elseif switch_time(k) < yellow_time + min_time
+                inds = strfind(ints(k).lights, 'y');
+                if ~isempty(inds)
+                    ints(k).lights(inds) = 'r';
+                    ints(k).lights(next_light(inds)) = 'g';
+                    % hnd = DrawLights(ints, hnd);
+                end
+                % if switching is an option
+            else
+                inds = strfind(ints(k).lights, 'g');
+                phase_weights = zeros(num_w,1);
+                for tmp = 1:num_w
+                    phase_weights(tmp) = sum(weights(k,w_ind,phases(tmp)));
+                end
+                [max_ind, max_phase_weight] = max(phase_weights);
+                for tmp = 1:num_w
+                    if isequal(inds, phases(tmp))
+                        if (max_phase_weight - phase_weights(tmp))/phase_weights(tmp) > switch_threshold
+                            switch_time(k) = 0;
+                            if k == 1
+                                switch_log1 = [switch_log1, t];
+                            elseif k == 2
+                                switch_log2 = [switch_log2, t];
+                            end
+                            if ~ismember(phases(tmp,1), phases(max_ind))
+                                ints(k).lights(phases(tmp,1)) = 'y';
+                            end
+                            if ~ismember(phases(tmp,2), phases(max_ind))
+                                ints(k).lights(phases(tmp,2)) = 'y';
+                            end
+                            % hnd = DrawLights(ints, hnd);
+                        elseif (phase_weights(next_light(tmp)) - phase_weights(tmp))/phase_weights(tmp) > .5*switch_threshold
+                            switch_time(k) = 0;
+                            if k == 1
+                                switch_log1 = [switch_log1, t];
+                            elseif k == 2
+                                switch_log2 = [switch_log2, t];
+                            end
+                            ints(k).lights(phases(tmp,next_light(tmp))) = 'y';
+                            % hnd = DrawLights(ints, hnd);
+                        end 
+                    end
+                end 
+            end
         end
     end
-
-    % INCOMPLETE, NEED TO ACCOUNT FOR MULTIPLE INTERSECTIONS
+    
+    printf('Int1 = %s', ints(1).lights)
+    printf('Int2 = %s', ints(2).lights)
+    
     title_str = sprintf('Time = %.2f', t);
     title(title_str)
-%     text_box = uicontrol('style','text');
-%     if strcmp(policy, 'custom')
-%         text_str = ['Custom Wait Time Policy      '];
-%     elseif strcmp(policy, 'cycle')
-%         text_str = ['Fixed Cycle Policy           '];
-%     end
-%     text_str = [text_str;
-%       '  vertical weight1 = ', sprintf('%8.2f',weight(1,w_ind,1)); 
-%       'horizontal weight1 = ', sprintf('%8.2f',weight(1,w_ind,2))];
-%     if length(ints) == 2
-%         text_str = [text_str;
-%           '  vertical weight2 = ', sprintf('%8.2f',weight(2,w_ind,1));
-%           'horizontal weight2 = ', sprintf('%8.2f',weight(2,w_ind,2))];
-%     end
-%     set(text_box,'String',text_str)
-%     set(text_box,'Units','characters')
-%     set(text_box,'Position', [70 15 50 8])
+    text_box = uicontrol('style','text');
+    if strcmp(policy, 'custom')
+        text_str = ['Custom Wait Time Policy      '];
+    elseif strcmp(policy, 'cycle')
+        text_str = ['Fixed Cycle Policy           '];
+    end
+    text_str = [text_str;
+        '  vertical weight1 = ', sprintf('%8.2f',weights(1,w_ind,1));
+        'horizontal weight1 = ', sprintf('%8.2f',weights(1,w_ind,2))];
+    if length(ints) == 2
+        text_str = [text_str;
+            '  vertical weight2 = ', sprintf('%8.2f',weights(2,w_ind,1));
+            'horizontal weight2 = ', sprintf('%8.2f',weights(2,w_ind,2))];
+    end
+    set(text_box,'String',text_str)
+    set(text_box,'Units','characters')
+    set(text_box,'Position', [70 15 50 8])
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicles))
@@ -199,7 +242,7 @@ for t = delta_t*(1:num_iter)
     
     % Now spawn new vehicles
     [ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, t, delta_t, spawn_type);
-    if isempty(fieldnames(vehicles(1))) 
+    if isempty(fieldnames(vehicles(1)))
         ctr = 0; % overwrites the empty vehicle
     else
         ctr = length(vehicles); % count number of cars already spawned
@@ -209,9 +252,9 @@ for t = delta_t*(1:num_iter)
             % If the last vehicle to spawn in the lane is too close, dont
             % spawn
             if latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s)) == 0 || ...
-              norm(vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).position - ...
-              vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).starting_point, 2) > ...
-              4*vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).length
+                    norm(vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).position - ...
+                    vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).starting_point, 2) > ...
+                    4*vehicles(latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s))).length
                 vehicles = MakeVehicle(ints, vehicles, (ctr + 1), ints_temp(s), roads_temp(s), lanes_temp(s), t, max_speed);
                 latest_spawn(ints_temp(s),roads_temp(s),lanes_temp(s)) = ctr + 1;
                 ctr = ctr + 1;
@@ -222,7 +265,7 @@ for t = delta_t*(1:num_iter)
     if mod(t, delta_t*num_iter/10) == 0
         fprintf('Time = %f\n', t);
     end
-
+    
     switch_time = switch_time + delta_t;
     w_ind = w_ind + 1;
 end
@@ -231,7 +274,7 @@ if make_video
     close(vid_obj);
     close(gcf);
 end
-    
+
 % Post processing
 total_time = 0;
 total_wait_time = 0;
@@ -247,10 +290,10 @@ end
 
 figure
 hold on
-plot(delta_t*(0:num_iter-1), weight(1,:,1), 'r--')
-plot(delta_t*(0:num_iter-1), weight(1,:,2), 'b')
-plot(delta_t*(0:num_iter-1), weight(2,:,1), 'r--')
-plot(delta_t*(0:num_iter-1), weight(2,:,2), 'b')
+plot(delta_t*(0:num_iter-1), weights(1,:,1), 'r--')
+plot(delta_t*(0:num_iter-1), weights(1,:,2), 'b')
+plot(delta_t*(0:num_iter-1), weights(2,:,1), 'r--')
+plot(delta_t*(0:num_iter-1), weights(2,:,2), 'b')
 plot(switch_log1, zeros(length(switch_log1),1), '*')
 plot(switch_log2, zeros(length(switch_log2),1), '*')
 xlabel('Time (s)')

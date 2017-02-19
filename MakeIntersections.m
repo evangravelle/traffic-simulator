@@ -17,7 +17,11 @@ end
 % Make the Intersection
 for k = 1:num_int
     ints(k).center = [(k-1)*2*(lane_length + num_lanes*lane_width), 0];
-    ints(k).lights = 'grgr';
+    if all_straight
+        ints(k).lights = 'grgr';
+    else
+        ints(k).lights = 'rgrgrrrr';
+    end
     for j = 1:4 % 4 roads
         ints(k).roads(j).lane_width = lane_width; %width of each lane at intersection
         ints(k).roads(j).length = lane_length; %length of each road
@@ -172,7 +176,7 @@ for k = 1:num_int
  
 end
 
-% defines lane connections across intersections
+% defines lane connections between intersections
 for i = 1:num
     ints(1).connections(3*num+i,:) = [2, 7*num+1-i];
     ints(2).connections(7*num+i,:) = [1, 3*num+1-i];
