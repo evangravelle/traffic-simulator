@@ -207,7 +207,6 @@ for v = 1:V
         
         % after considering the interection ahead
         % if a vehicle cannot stop in time, then it doesn't slow
-        % MUST BE REWRITTEN WHEN THERE ARE MULTIPLE INTERSECTIONS
         
         % This accounts for extra distance caused by discrete time step
         buffer_length = 0.5 * delta_t * vehicles(v).max_velocity; 
@@ -221,7 +220,7 @@ for v = 1:V
             % if the vehicle can make it through the intersection
             % if vehicle(i).velocity * yellow_time > inter_dist + inter_length && false
             %     v4 = vehicle(i).max_velocity;
-            if (int_dist - 1 * buffer_length - 2.5*vehicles(v).length < brake_dist_i)
+            if (int_dist - buffer_length - 2.5*vehicles(v).length < brake_dist_i)
                 v4 = max(0,vehicles(v).velocity + vehicles(v).min_accel*delta_t);
             end
             

@@ -66,7 +66,7 @@ W = @(t) .05 * t^2;
 
 switch_time = Inf*ones(num_int);
 hnd = [];
-hnd = DrawLights(ints, hnd);
+% hnd = DrawLights(ints, hnd);
 switch_log1 = [];
 switch_log2 = [];
 if all_straight
@@ -112,7 +112,7 @@ for t = delta_t*(1:num_iter)
             % if light is yellow
             if switch_time(k) < yellow_time
                 % do nothing
-                % if stuck in green
+            % if stuck in green
             elseif switch_time(k) < yellow_time + min_time
                 if strcmp(ints(k).lights,'yryr')
                     ints(k).lights = 'rgrg';
@@ -121,7 +121,7 @@ for t = delta_t*(1:num_iter)
                     ints(k).lights = 'grgr';
                     hnd = DrawLights(ints, hnd);
                 end
-                % if switching is an option
+            % if switching is an option
             else
                 if strcmp(ints(k).lights,'grgr') && (weights(k,w_ind,2) - weights(k,w_ind,1))/weights(k,w_ind,1) > switch_threshold
                     switch_time(k) = 0;
@@ -147,25 +147,26 @@ for t = delta_t*(1:num_iter)
         elseif strcmp(policy, 'custom') && all_straight == false
             if switch_time(k) < yellow_time
                 % do nothing
-                % if stuck in green
+            % if stuck in green
             elseif switch_time(k) < yellow_time + min_time
                 inds = strfind(ints(k).lights, 'y');
                 if ~isempty(inds)
                     ints(k).lights(inds) = 'r';
-                    ints(k).lights(next_light(inds)) = 'g';
+                    ints(k).lights(to_switch_to) = 'g';
                     % hnd = DrawLights(ints, hnd);
                 end
-                % if switching is an option
+            % if switching is an option
             else
                 inds = strfind(ints(k).lights, 'g');
                 phase_weights = zeros(num_w,1);
                 for tmp = 1:num_w
                     phase_weights(tmp) = sum(weights(k,w_ind,phases(tmp)));
                 end
-                [max_ind, max_phase_weight] = max(phase_weights);
+                [max_phase_weight, max_ind] = max(phase_weights);
                 for tmp = 1:num_w
-                    if isequal(inds, phases(tmp))
+                    if isequal(inds, phases(tmp,:))
                         if (max_phase_weight - phase_weights(tmp))/phase_weights(tmp) > switch_threshold
+                            to_switch_to = phases(max_ind,:)
                             switch_time(k) = 0;
                             if k == 1
                                 switch_log1 = [switch_log1, t];
@@ -180,13 +181,14 @@ for t = delta_t*(1:num_iter)
                             end
                             % hnd = DrawLights(ints, hnd);
                         elseif (phase_weights(next_light(tmp)) - phase_weights(tmp))/phase_weights(tmp) > .5*switch_threshold
+                            to_switch_to = next_light(tmp)
                             switch_time(k) = 0;
                             if k == 1
                                 switch_log1 = [switch_log1, t];
                             elseif k == 2
                                 switch_log2 = [switch_log2, t];
                             end
-                            ints(k).lights(phases(tmp,next_light(tmp))) = 'y';
+                            ints(k).lights(next_light(tmp)) = 'y';
                             % hnd = DrawLights(ints, hnd);
                         end 
                     end
@@ -195,28 +197,42 @@ for t = delta_t*(1:num_iter)
         end
     end
     
-    printf('Int1 = %s', ints(1).lights)
-    printf('Int2 = %s', ints(2).lights)
+    if mod(t, 1) == 0
+        % fprintf('Int1 = %s\n', ints(1).lights)
+        % fprintf('Int2 = %s\n', ints(2).lights)
+    end
     
     title_str = sprintf('Time = %.2f', t);
     title(title_str)
     text_box = uicontrol('style','text');
     if strcmp(policy, 'custom')
-        text_str = ['Custom Wait Time Policy      '];
+        text_str = ['Custom Policy                ', ints(1).lights, '                        '];
     elseif strcmp(policy, 'cycle')
-        text_str = ['Fixed Cycle Policy           '];
+        text_str = ['Cycle Policy                 ', ints(1).lights, '                        '];
     end
-    text_str = [text_str;
-        '  vertical weight1 = ', sprintf('%8.2f',weights(1,w_ind,1));
-        'horizontal weight1 = ', sprintf('%8.2f',weights(1,w_ind,2))];
-    if length(ints) == 2
+    % disp(length(text_str))
+    % disp(length(['Int1=', sprintf('%7.1f',weights(1,w_ind,:))]))
+    if all_straight
         text_str = [text_str;
-            '  vertical weight2 = ', sprintf('%8.2f',weights(2,w_ind,1));
-            'horizontal weight2 = ', sprintf('%8.2f',weights(2,w_ind,2))];
+            '  vertical weight1 = ', sprintf('%8.2f',weights(1,w_ind,1));
+            'horizontal weight1 = ', sprintf('%8.2f',weights(1,w_ind,2))];
+        if length(ints) == 2
+            text_str = [text_str;
+                '  vertical weight2 = ', sprintf('%8.2f',weights(2,w_ind,1));
+                'horizontal weight2 = ', sprintf('%8.2f',weights(2,w_ind,2))];
+        end
+        set(text_box,'String',text_str)
+        set(text_box,'Units','characters')
+        set(text_box,'Position', [70 15 50 8])
+    else
+        text_str = [text_str; 'Int1=', sprintf('%7.1f',weights(1,w_ind,:))];
+        if length(ints) == 2
+            text_str = [text_str; 'Int2=', sprintf('%7.1f',weights(2,w_ind,:))];
+        end
+        set(text_box,'String',text_str)
+        set(text_box,'Units','characters')
+        set(text_box,'Position', [63 15 60 8])
     end
-    set(text_box,'String',text_str)
-    set(text_box,'Units','characters')
-    set(text_box,'Position', [70 15 50 8])
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicles))
