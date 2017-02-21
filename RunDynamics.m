@@ -48,6 +48,7 @@ for v = 1:V
                 vehicles(v).int = new_int;
                 vehicles(v).road = mod(vehicles(v).road + 1, 4) + 1;
                 vehicles(v).lane = mod(lane_global_new - 1, num_lanes) + 1;
+                disp(vehicles(v).road)
                 
                 if strcmp(ints(new_int).roads(vehicles(v).road).orientation,'vertical')
                     vehicles(v).starting_point = [0 + ... % ints(new_int).center(1)
@@ -97,8 +98,11 @@ for v = 1:V
             end
         end
         
-        % Calculate the updated position. If remaining on road:
-        if vehicles(v).lane > 0
+        % Calculate the updated position. If left the system:
+        if vehicles(v).time_leave ~= -1
+            % do nothing
+        % If remaining on road:
+        elseif vehicles(v).lane > 0
             vehicles(v).position = vehicles(v).starting_point + ...
               (Rotate2d(ints(current_int).roads(vehicles(v).road).lanes(abs(vehicles(v).lane)).direction)*[1 0]')' * ...
               vehicles(v).dist_in_lane;

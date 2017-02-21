@@ -1,7 +1,7 @@
 % Written by Evan Gravelle and Julio Martinez
 % 12/11/16
 
-function ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, all_straight)
+function ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, init_lights, all_straight)
 % Declare structures
 ints(num_int) = struct;
 for k = 1:num_int
@@ -17,11 +17,7 @@ end
 % Make the Intersection
 for k = 1:num_int
     ints(k).center = [(k-1)*2*(lane_length + num_lanes*lane_width), 0];
-    if all_straight
-        ints(k).lights = 'grgr';
-    else
-        ints(k).lights = 'rgrgrrrr';
-    end
+    ints(k).lights = init_lights;
     for j = 1:4 % 4 roads
         ints(k).roads(j).lane_width = lane_width; %width of each lane at intersection
         ints(k).roads(j).length = lane_length; %length of each road
@@ -177,9 +173,11 @@ for k = 1:num_int
 end
 
 % defines lane connections between intersections
-for i = 1:num
-    ints(1).connections(3*num+i,:) = [2, 7*num+1-i];
-    ints(2).connections(7*num+i,:) = [1, 3*num+1-i];
+if num_int == 2
+    for i = 1:num
+        ints(2).connections(7*num+i,:) = [1, 3*num+1-i];
+        ints(1).connections(3*num+i,:) = [2, 7*num+1-i];
+    end
 end
 
 
