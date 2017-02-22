@@ -5,15 +5,15 @@ clear; clc; close all
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 12000;
+num_iter = 3000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-policy = 'custom'; % the options are 'custom' or 'cycle'
+policy = 'cycle'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 phase_length = 60; % time of whole intersection cycle
 min_time = 10; % minimum time spent in a phase
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
-spawn_rate = .8; % average vehicles per second
+spawn_rate = 1; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
 all_straight = false; % true if no turns exist
 num_int = 1; % number of intersections
