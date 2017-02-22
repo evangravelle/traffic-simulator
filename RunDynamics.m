@@ -48,7 +48,7 @@ for v = 1:V
                 vehicles(v).int = new_int;
                 vehicles(v).road = mod(vehicles(v).road + 1, 4) + 1;
                 vehicles(v).lane = mod(lane_global_new - 1, num_lanes) + 1;
-                disp(vehicles(v).road)
+                % disp(vehicles(v).road)
                 
                 if strcmp(ints(new_int).roads(vehicles(v).road).orientation,'vertical')
                     vehicles(v).starting_point = [0 + ... % ints(new_int).center(1)

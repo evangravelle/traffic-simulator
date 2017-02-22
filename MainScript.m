@@ -7,7 +7,7 @@ clear; clc; close all
 delta_t = .1;
 num_iter = 3000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-policy = 'cycle'; % the options are 'custom' or 'cycle'
+policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 phase_length = 60; % time of whole intersection cycle
@@ -16,7 +16,7 @@ switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means dou
 spawn_rate = 1; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
 all_straight = false; % true if no turns exist
-num_int = 1; % number of intersections
+num_int = 2; % number of intersections
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2;
@@ -166,6 +166,7 @@ for t = delta_t*(1:num_iter)
             end
             
         elseif strcmp(policy, 'custom') && all_straight == false
+            % if stuck in yellow
             if switch_time(k) < yellow_time
                 % do nothing
             % if stuck in green
@@ -173,7 +174,7 @@ for t = delta_t*(1:num_iter)
                 inds = strfind(ints(k).lights, 'y');
                 if ~isempty(inds)
                     ints(k).lights(inds) = 'r';
-                    ints(k).lights(to_switch_to) = 'g';
+                    ints(k).lights(to_switch_to(k,:)) = 'g';
                     % hnd = DrawLights(ints, hnd);
                 end
             % if switching is an option
@@ -189,7 +190,7 @@ for t = delta_t*(1:num_iter)
                 neighbor_phases = phases(phases_compat_inds(current_phase),:);
                 neighbor_weights = phase_weights(neighbor_phases);
                 if (max_phase_weight - current_weight)/current_weight > switch_threshold
-                    to_switch_to = phases(max_ind,:);
+                    to_switch_to(k,:) = phases(max_ind,:);
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -204,7 +205,7 @@ for t = delta_t*(1:num_iter)
                     end
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(1) - current_weight)/current_weight > .5*switch_threshold
-                    to_switch_to = neighbor_phases(1);
+                    to_switch_to(k,:) = neighbor_phases(1);
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -214,7 +215,7 @@ for t = delta_t*(1:num_iter)
                     ints(k).lights(neighbor_phases(2)) = 'y';
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(2) - current_weight)/current_weight > .5*switch_threshold
-                    to_switch_to = neighbor_phases(2);
+                    to_switch_to(k,:) = neighbor_phases(2);
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -237,9 +238,9 @@ for t = delta_t*(1:num_iter)
     title(title_str)
     text_box = uicontrol('style','text');
     if strcmp(policy, 'custom')
-        text_str = ['Custom Policy                ', ints(1).lights, '                        '];
+        text_str = ['Custom Policy       ', ints(1).lights, '                   ', ints(2).lights, '      '];
     elseif strcmp(policy, 'cycle')
-        text_str = ['Cycle Policy                 ', ints(1).lights, '                        '];
+        text_str = ['Cycle Policy        ', ints(1).lights, '                   ', ints(2).lights, '      '];
     end
     % disp(length(text_str))
     % disp(length(['Int1=', sprintf('%7.1f',weights(1,w_ind,:))]))
