@@ -5,7 +5,7 @@ clear; clc; close all
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 3000;
+num_iter = 600;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
@@ -19,7 +19,7 @@ all_straight = false; % true if no turns exist
 num_int = 2; % number of intersections
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
-lane_width = 3.2;
+lane_width = 3.2; 
 lane_length = 150;
 make_video = true;
 
@@ -50,6 +50,7 @@ vehicles = DrawAllVehicles(ints, vehicles, ints_temp, roads_temp, lanes_temp, ti
 % This keeps track of last vehicle to spawn in each lane, to check for
 % collisions
 latest_spawn = zeros(num_int, num_roads, num_lanes);
+queue_lengths = zeros(num_int, num_roads, num_lanes, num_iter);
 
 % Play this mj2 file with VLC
 % vid_obj = VideoWriter('movie.avi','Archival');
@@ -274,9 +275,10 @@ for t = delta_t*(1:num_iter)
     if ~isempty(fieldnames(vehicles))
         vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, yellow_time, t, delta_t);
         for v = 1:length(vehicles)
-            % if vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
-            %     vehicles(v).wait = vehicles(v).wait + delta_t;
-            % end
+            if vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
+                queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) = ...
+                  queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) + 1;
+            end
             if isfield(vehicles, 'figure')
                 delete(vehicles(v).figure);
             end
