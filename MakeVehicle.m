@@ -5,6 +5,7 @@ function vehicles = MakeVehicle(ints, vehicles, i, int, road, lane, time_enter, 
 % Initializes vehicle with zero values everywhere
 % i is the the vehicle number
 % vehicle is the structe passed in and also passed out
+num_int = length(ints);
 
 vehicles(i).length = 4.8;
 vehicles(i).width = 2;
@@ -21,7 +22,7 @@ vehicles(i).velocity = vehicles(i).max_velocity;
 % vehicles(i).path = [vehicles(i).origin vehicles(i).destination];
 vehicles(i).time_enter = time_enter;
 vehicles(i).time_leave = -1;
-vehicles(i).wait = 0;
+vehicles(i).wait = zeros(num_int,1);
 vehicles(i).lane = lane;
 vehicles(i).road = road;
 vehicles(i).int = int;

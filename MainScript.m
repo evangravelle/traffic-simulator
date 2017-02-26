@@ -4,14 +4,16 @@ clear; clc; close all
 % hold on;
 
 % Initialize parameters
+reshape(1,1,1)
 delta_t = .1;
-num_iter = 600;
+num_iter = 1200;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 phase_length = 60; % time of whole intersection cycle
 min_time = 10; % minimum time spent in a phase
+min_veh = 7;
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = 1; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
@@ -51,6 +53,10 @@ vehicles = DrawAllVehicles(ints, vehicles, ints_temp, roads_temp, lanes_temp, ti
 % collisions
 latest_spawn = zeros(num_int, num_roads, num_lanes);
 queue_lengths = zeros(num_int, num_roads, num_lanes, num_iter);
+packets = [];
+int_dist = ints(2).center(1);
+max_accel = 1.8;
+T = (int_dist-max_speed^2/(2*max_accel))/max_speed; % time for platoon to reach new intersection
 
 % Play this mj2 file with VLC
 % vid_obj = VideoWriter('movie.avi','Archival');
@@ -65,7 +71,7 @@ end
 % W = @(t) c(1) * (t + c(2))^c(3) + c(4);
 % W = @(t) .05 * (t^2 + t);
 % Weight function
-W = @(t) .05 * t^2;
+W = @(t) .05 * t.^2;
 
 switch_time = Inf*ones(num_int);
 hnd = [];
@@ -78,6 +84,7 @@ else
     num_w = 8;
 end
 weights = zeros(num_int,num_iter,num_w);
+added_weights = zeros(num_int,num_iter,num_w);
 
 w_ind = 1;
 % Run simulation
@@ -85,7 +92,7 @@ for t = delta_t*(1:num_iter)
     
     % Calculates weights in each lane
     if ~isempty(fieldnames(vehicles))
-        weights(:,w_ind,:) = CalcWeights(vehicles, num_int, num_w, num_lanes, W);
+        [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, num_int, num_w, num_lanes, wait_thresh, packets, W);
     end
     
     % Yellow light time needs to be function of max velocity! Not a
@@ -228,6 +235,18 @@ for t = delta_t*(1:num_iter)
                 end
             end
         end
+        
+        % if switching to enable flow toward another intersection, create packet
+        if k == 1 && switch_time(k) == 0 && ismember(1, to_switch_to(k,:))
+            packets = [packets; k, min([min_veh,queue_lengths(k,1,3,w_ind-1)]), t + T]
+        elseif k == 1 && switch_time(k) == 0 && ismember(8, to_switch_to(k,:))
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,4,1:2,w_ind-1)/(num_lanes-1))]), t + T]
+        end
+        if k == 2 && switch_time(k) == 0 && ismember(4,to_switch_to(k,:))
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,2,1:2,w_ind-1)/(num_lanes-1))]), t + T]
+        elseif k == 2 && switch_time(k) == 0 && ismember(5,to_switch_to(k,:))
+            packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind-1)]), t + T]
+        end
     end
     
     if mod(t, 1) == 0
@@ -287,7 +306,7 @@ for t = delta_t*(1:num_iter)
             end
         end
     end
-    
+    % disp(reshape(queue_lengths(:, :, :, w_ind),1,24))
     if make_video
         pause(0.03)
         current_frame = getframe(gcf);
@@ -338,13 +357,13 @@ for v = 1:length(vehicles)
     if time > 0
         total_time = total_time + time;
     end
-    total_wait_time = total_wait_time + vehicles(v).wait;
-    total_weighted_wait_time = total_weighted_wait_time + W(vehicles(v).wait);
+    total_wait_time = total_wait_time + sum(vehicles(v).wait);
+    total_weighted_wait_time = total_weighted_wait_time + sum(W(vehicles(v).wait));
 end
 
 figure
 hold on
-for z = 1:1 % num_int
+for z = 1:2 % num_int
     for i = 1:num_w
         plot(delta_t*(0:num_iter-1), weights(z,:,i))
     end
@@ -356,8 +375,30 @@ end
 xlabel('Time (s)')
 ylabel('Weight')
 title('Road weights')
+ax = gca;
+set(ax,'FontName','Times')
+set(ax,'FontSize',14)
 % legend('NS1', 'EW1', 'NS2', 'EW2')
 saveas(gcf, 'weight_plot', 'png')
+
+figure
+hold on
+%for i = 1:num_int*num_lanes*num_roads
+for int = 1:num_int
+    for road = 1:num_roads
+        for lane = 1:num_lanes
+            len = size(queue_lengths,4);
+            plot(delta_t*(0:len-1), reshape(queue_lengths(int,road,lane,:),1,len))
+        end
+    end
+end
+title('Length of Queues')
+xlabel('Time (s)')
+ylabel('Queue length (num veh)')
+ax = gca;
+set(ax,'FontName','Times')
+set(ax,'FontSize',14)
+saveas(gcf, 'queue_plot', 'png')
 
 % TO DO LIST
 % All the random stuff mentioned in the code already

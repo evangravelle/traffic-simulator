@@ -239,15 +239,15 @@ for v = 1:V
          % adds wait time
         if vehicles(v).dist_in_lane < ints(new_int).roads(new_road).length && ...
           new_lane > 0 && vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
-            vehicles(v).wait = vehicles(v).wait + delta_t;
+            vehicles(v).wait(new_int) = vehicles(v).wait(new_int) + delta_t;
         end
 
         % if the vehicle just left the current road
-        if vehicles(v).dist_in_lane > ints(new_int).roads(new_road).length && ...
-          new_lane > 0
+        % if vehicles(v).dist_in_lane > ints(new_int).roads(new_road).length && ...
+        %   new_lane > 0
             % resets wait time
-            vehicles(v).wait = 0;
-        end
+        %     vehicles(v).wait = 0;
+        % end
 
         % if vehicle(i).wait > 0
         %     fprintf('vehicle %d has waited %.2f\n', i, vehicle(i).wait)
