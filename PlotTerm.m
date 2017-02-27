@@ -12,11 +12,12 @@ z = T - tsys - S;
 B = zeros(100,1);
 ind = 1;
 for z_ = z
-    B(ind) = alpha*E*max([0, min([z_/zeta+1,1,(g-z_)/zeta])]);
+    B(ind) = -alpha*E*max([0, min([z_/zeta+1,1,(g-z_)/zeta])]);
     ind = ind + 1;
 end
 plot(z,B)
-ylim([-5 20])
+xlim([-10 20])
+ylim([-20 5])
 xlabel('z (seconds)')
 ylabel('B')
 title('Coordination term')
