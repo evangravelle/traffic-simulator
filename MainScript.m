@@ -4,9 +4,8 @@ clear; clc; close all
 % hold on;
 
 % Initialize parameters
-reshape(1,1,1)
 delta_t = .1;
-num_iter = 1200;
+num_iter = 3000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
@@ -15,7 +14,7 @@ phase_length = 60; % time of whole intersection cycle
 min_time = 10; % minimum time spent in a phase
 min_veh = 7;
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
-spawn_rate = 1; % average vehicles per second
+spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
 all_straight = false; % true if no turns exist
 num_int = 2; % number of intersections
@@ -92,7 +91,8 @@ for t = delta_t*(1:num_iter)
     
     % Calculates weights in each lane
     if ~isempty(fieldnames(vehicles))
-        [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, num_int, num_w, num_lanes, wait_thresh, packets, W);
+        [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, ...
+          num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, min_time, W);
     end
     
     % Yellow light time needs to be function of max velocity! Not a
@@ -238,14 +238,14 @@ for t = delta_t*(1:num_iter)
         
         % if switching to enable flow toward another intersection, create packet
         if k == 1 && switch_time(k) == 0 && ismember(1, to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,queue_lengths(k,1,3,w_ind-1)]), t + T]
+            packets = [packets; k, min([min_veh,queue_lengths(k,1,3,w_ind-1)]), t + T];
         elseif k == 1 && switch_time(k) == 0 && ismember(8, to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,sum(queue_lengths(k,4,1:2,w_ind-1)/(num_lanes-1))]), t + T]
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,4,1:2,w_ind-1)/(num_lanes-1))]), t + T];
         end
         if k == 2 && switch_time(k) == 0 && ismember(4,to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,sum(queue_lengths(k,2,1:2,w_ind-1)/(num_lanes-1))]), t + T]
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,2,1:2,w_ind-1)/(num_lanes-1))]), t + T];
         elseif k == 2 && switch_time(k) == 0 && ismember(5,to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind-1)]), t + T]
+            packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind-1)]), t + T];
         end
     end
     

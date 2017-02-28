@@ -193,6 +193,10 @@ for v = 1:V
             % if v on road and ahead on road ahead
             elseif (vehicles(v).int == vehicles(vehicles(v).ahead).int && ...
               vehicles(v).road ~= vehicles(vehicles(v).ahead).road)
+                disp(vehicles(v))
+                disp(current_int)
+                disp(current_road)
+                disp(current_lane)
                 dist_ahead = ints(current_int).roads(current_road).length - vehicles(v).dist_in_lane + ...
                   turn_length(current_lane) + vehicles(vehicles(v).ahead).dist_in_lane;
             % if v and ahead in different intersections
