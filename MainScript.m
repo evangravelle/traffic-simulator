@@ -13,6 +13,7 @@ yellow_time = max_speed/4; % this is heuristic
 phase_length = 60; % time of whole intersection cycle
 min_time = 10; % minimum time spent in a phase
 min_veh = 7;
+alpha = 10; % coefficient on coordination term
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
@@ -55,7 +56,7 @@ queue_lengths = zeros(num_int, num_roads, num_lanes, num_iter);
 packets = [];
 int_dist = ints(2).center(1);
 max_accel = 1.8;
-T = (int_dist-max_speed^2/(2*max_accel))/max_speed; % time for platoon to reach new intersection
+T = 23; % (int_dist-.5*max_speed^2/max_accel)/max_speed; % time for platoon to reach new intersection
 
 % Play this mj2 file with VLC
 % vid_obj = VideoWriter('movie.avi','Archival');
@@ -92,7 +93,7 @@ for t = delta_t*(1:num_iter)
     % Calculates weights in each lane
     if ~isempty(fieldnames(vehicles))
         [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, ...
-          num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, min_time, W);
+          num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, alpha, min_time, W);
     end
     
     % Yellow light time needs to be function of max velocity! Not a
@@ -152,7 +153,9 @@ for t = delta_t*(1:num_iter)
                 end
             % if switching is an option
             else
-                if strcmp(ints(k).lights,'grgr') && (weights(k,w_ind,2) - weights(k,w_ind,1))/weights(k,w_ind,1) > switch_threshold
+                if strcmp(ints(k).lights,'grgr') && (weights(k,w_ind,2) + added_weights(k,w_ind,2) - ...
+                  weights(k,w_ind,1) - added_weights(k,w_ind,1)) / ...
+                  (weights(k,w_ind,1) + added_weights(k,w_ind,1)) > switch_threshold
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -161,7 +164,9 @@ for t = delta_t*(1:num_iter)
                     end
                     ints(k).lights = 'yryr';
                     hnd = DrawLights(ints, hnd);
-                elseif strcmp(ints(k).lights,'rgrg') && (weights(k,w_ind,1) - weights(k,w_ind,2))/weights(k,w_ind,2) > switch_threshold
+                elseif strcmp(ints(k).lights,'rgrg') && (weights(k,w_ind,1) + added_weights(k,w_ind,1) - ...
+                  weights(k,w_ind,2) - added_weights(k,w_ind,2)) / ...
+                  (weights(k,w_ind,2) + added_weights(k,w_ind,2)) > switch_threshold
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
@@ -190,7 +195,7 @@ for t = delta_t*(1:num_iter)
                 inds = strfind(ints(k).lights, 'g');
                 phase_weights = zeros(num_w,1);
                 for tmp = 1:num_w
-                    phase_weights(tmp) = sum(weights(k,w_ind,phases(tmp,:)));
+                    phase_weights(tmp) = sum(weights(k,w_ind,phases(tmp,:))) + sum(added_weights(k,w_ind,phases(tmp,:)));
                 end
                 [max_phase_weight, max_ind] = max(phase_weights);
                 [~, current_phase] = ismember(inds, phases, 'rows');
@@ -237,15 +242,20 @@ for t = delta_t*(1:num_iter)
         end
         
         % if switching to enable flow toward another intersection, create packet
+        % packet contains source intersection, number of vehicles, and 
         if k == 1 && switch_time(k) == 0 && ismember(1, to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,queue_lengths(k,1,3,w_ind-1)]), t + T];
+            packets = [packets; k, min([min_veh,queue_lengths(k,1,3,w_ind-1)]), t + T + yellow_time];
+        elseif k == 1 && switch_time(k) == 0 && ismember(6, to_switch_to(k,:))
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,3,1,w_ind-1))]), t + T + yellow_time];
         elseif k == 1 && switch_time(k) == 0 && ismember(8, to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,sum(queue_lengths(k,4,1:2,w_ind-1)/(num_lanes-1))]), t + T];
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,4,2,w_ind-1))]), t + T + yellow_time];
         end
-        if k == 2 && switch_time(k) == 0 && ismember(4,to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,sum(queue_lengths(k,2,1:2,w_ind-1)/(num_lanes-1))]), t + T];
+        if k == 2 && switch_time(k) == 0 && ismember(2,to_switch_to(k,:))
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,1,1,w_ind-1))]), t + T + yellow_time];
+        elseif k == 2 && switch_time(k) == 0 && ismember(4,to_switch_to(k,:))
+            packets = [packets; k, min([min_veh,sum(queue_lengths(k,2,2,w_ind-1))]), t + T + yellow_time];
         elseif k == 2 && switch_time(k) == 0 && ismember(5,to_switch_to(k,:))
-            packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind-1)]), t + T];
+            packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind-1)]), t + T + yellow_time];
         end
     end
     
