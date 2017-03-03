@@ -42,7 +42,7 @@ for v = 1:length(vehicles)
 end
 
 % Calculates the coordination term B, applies to the right phases
-B = @(alp,E,z,zeta,g) -alp*E*max([0, min([z/zeta+1,1,g/zeta,-z/zeta+g/zeta])]);
+B = @(alp,E,z,zeta,g) alp*E*max([0, min([z/zeta+1,1,g/zeta,-z/zeta+g/zeta])]);
 for p = 1:size(packets,1)
     z = -packets(p,3) + t + yellow_time;
     E = packets(p,2);
@@ -59,13 +59,12 @@ for p = 1:size(packets,1)
 end
 
 % This ensures weights+added_weights is never negative
-for i = 1:num_int
-    for j = 1:num_w
-        if added_weights(i,1,j) + new_weights(i,1,j) < 0
-            added_weights(i,1,j) = -new_weights(i,1,j);
-        end
-    end
-end
-% out = max([added_weights,-new_weights]);
+% for i = 1:num_int
+%     for j = 1:num_w
+%         if added_weights(i,1,j) + new_weights(i,1,j) < 0
+%             added_weights(i,1,j) = -new_weights(i,1,j);
+%         end
+%     end
+% end
 
 end

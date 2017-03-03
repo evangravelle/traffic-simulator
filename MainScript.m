@@ -5,7 +5,7 @@ clear; clc; close all
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 3000;
+num_iter = 9000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
@@ -13,7 +13,7 @@ yellow_time = max_speed/4; % this is heuristic
 phase_length = 60; % time of whole intersection cycle
 min_time = 10; % minimum time spent in a phase
 min_veh = 7;
-alpha = 10; % coefficient on coordination term
+alpha = 0; % coefficient on coordination term
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
@@ -23,7 +23,7 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2; 
 lane_length = 150;
-make_video = true;
+make_video = false;
 
 if all_straight
     straight_list = 1:num_lanes;
@@ -34,7 +34,9 @@ else
     straight_list = 2:num_lanes-1;
     turn_radius = [.5*lane_width, Inf, (num_lanes+.5)*lane_width];
     turn_length = [pi/2*.5*lane_width, 2*num_lanes*lane_width, pi/2*(num_lanes+.5)*lane_width];
-    phases_compat_inds = [2 3;1 4;1 4;2 3;6 7;5 8;5 8;6 7]; % which direction is compatible with the index
+    % each element describes which phase is compatible by holding one direction constant.
+    % row = joint phase number, column = which lane is constant
+    phases_compat_inds = [2 3;1 4;1 4;2 3;6 7;5 8;5 8;6 7]; 
     phases = [2 6;1 2;5 6;1 5;4 8;3 4;7 8;3 7];
     init_lights = 'rgrrrgrr';
 end
@@ -198,10 +200,12 @@ for t = delta_t*(1:num_iter)
                     phase_weights(tmp) = sum(weights(k,w_ind,phases(tmp,:))) + sum(added_weights(k,w_ind,phases(tmp,:)));
                 end
                 [max_phase_weight, max_ind] = max(phase_weights);
-                [~, current_phase] = ismember(inds, phases, 'rows');
-                current_weight = phase_weights(current_phase);
-                neighbor_phases = phases(phases_compat_inds(current_phase),:);
-                neighbor_weights = phase_weights(neighbor_phases);
+                [~, current_phase_ind] = ismember(inds, phases, 'rows');
+                current_phase = phases(current_phase_ind);
+                current_weight = phase_weights(current_phase_ind);
+                neighbor_phase_inds = phases_compat_inds(current_phase_ind,:);
+                neighbor_phases = phases(neighbor_phase_inds,:);
+                neighbor_weights = phase_weights(neighbor_phase_inds);
                 if (max_phase_weight - current_weight)/current_weight > switch_threshold
                     to_switch_to(k,:) = phases(max_ind,:);
                     switch_time(k) = 0;
@@ -210,32 +214,32 @@ for t = delta_t*(1:num_iter)
                     elseif k == 2
                         switch_log2 = [switch_log2, t];
                     end
-                    if ~ismember(phases(current_phase,1), phases(max_ind,:))
-                        ints(k).lights(phases(current_phase,1)) = 'y';
+                    if ~ismember(phases(current_phase_ind,1), phases(max_ind,:))
+                        ints(k).lights(phases(current_phase_ind,1)) = 'y';
                     end
-                    if ~ismember(phases(current_phase,2), phases(max_ind,:))
-                        ints(k).lights(phases(current_phase,2)) = 'y';
+                    if ~ismember(phases(current_phase_ind,2), phases(max_ind,:))
+                        ints(k).lights(phases(current_phase_ind,2)) = 'y';
                     end
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(1) - current_weight)/current_weight > .5*switch_threshold
-                    to_switch_to(k,:) = neighbor_phases(1);
+                    to_switch_to(k,:) = setdiff(neighbor_phases(1,:),current_phase);
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
                     elseif k == 2
                         switch_log2 = [switch_log2, t];
                     end
-                    ints(k).lights(neighbor_phases(2)) = 'y';
+                    ints(k).lights(setdiff(current_phase,neighbor_phases(1,:))) = 'y';
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(2) - current_weight)/current_weight > .5*switch_threshold
-                    to_switch_to(k,:) = neighbor_phases(2);
+                    to_switch_to(k,:) = setdiff(neighbor_phases(2,:),current_phase);
                     switch_time(k) = 0;
                     if k == 1
                         switch_log1 = [switch_log1, t];
                     elseif k == 2
                         switch_log2 = [switch_log2, t];
                     end
-                    ints(k).lights(neighbor_phases(2)) = 'y';
+                    ints(k).lights(setdiff(current_phase,neighbor_phases(2,:))) = 'y';
                     % hnd = DrawLights(ints, hnd);
                 end
             end
