@@ -5,15 +5,16 @@ clear; clc; close all
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 9000;
+num_iter = 3000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
+stop_time = 5; % given by deltaV/minAccel
 phase_length = 60; % time of whole intersection cycle
 min_time = 10; % minimum time spent in a phase
 min_veh = 7;
-alpha = 0; % coefficient on coordination term
+alpha = 20; % coefficient on coordination term
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
@@ -22,8 +23,8 @@ num_int = 2; % number of intersections
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2; 
-lane_length = 150;
-make_video = false;
+lane_length = 150; 
+make_video = true;
 
 if all_straight
     straight_list = 1:num_lanes;
@@ -72,8 +73,9 @@ end
 % c = [.54 1.5 1.5 -.95];
 % W = @(t) c(1) * (t + c(2))^c(3) + c(4);
 % W = @(t) .05 * (t^2 + t);
-% Weight function
+% Functions
 W = @(t) .05 * t.^2;
+B = @(alp,E,z,zeta,g) alp*E*max([0, min([z/zeta+1,1,g/zeta,-z/zeta+g/zeta])]);
 
 switch_time = Inf*ones(num_int);
 hnd = [];
@@ -88,6 +90,8 @@ end
 weights = zeros(num_int,num_iter,num_w);
 added_weights = zeros(num_int,num_iter,num_w);
 
+
+
 w_ind = 1;
 % Run simulation
 for t = delta_t*(1:num_iter)
@@ -95,7 +99,7 @@ for t = delta_t*(1:num_iter)
     % Calculates weights in each lane
     if ~isempty(fieldnames(vehicles))
         [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, ...
-          num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, alpha, min_time, W);
+          num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, stop_time, alpha, min_time, W, B);
     end
     
     % Yellow light time needs to be function of max velocity! Not a
@@ -195,18 +199,21 @@ for t = delta_t*(1:num_iter)
             % if switching is an option
             else
                 inds = strfind(ints(k).lights, 'g');
+                [~, current_phase_ind] = ismember(inds, phases, 'rows');
                 phase_weights = zeros(num_w,1);
                 for tmp = 1:num_w
                     phase_weights(tmp) = sum(weights(k,w_ind,phases(tmp,:))) + sum(added_weights(k,w_ind,phases(tmp,:)));
                 end
                 [max_phase_weight, max_ind] = max(phase_weights);
-                [~, current_phase_ind] = ismember(inds, phases, 'rows');
-                current_phase = phases(current_phase_ind);
+                current_phase = phases(current_phase_ind,:);
                 current_weight = phase_weights(current_phase_ind);
                 neighbor_phase_inds = phases_compat_inds(current_phase_ind,:);
                 neighbor_phases = phases(neighbor_phase_inds,:);
                 neighbor_weights = phase_weights(neighbor_phase_inds);
                 if (max_phase_weight - current_weight)/current_weight > switch_threshold
+                    fprintf('t = %f, int = %d, current_phase = [%d %d], new_phase = [%d %d]\n', t, k, ...
+                      current_phase(1), current_phase(2), phases(max_ind,1), phases(max_ind,2))
+                    fprintf('max_phase_weight = %f, current_weight = %f\n', max_phase_weight, current_weight)
                     to_switch_to(k,:) = phases(max_ind,:);
                     switch_time(k) = 0;
                     if k == 1
@@ -222,6 +229,8 @@ for t = delta_t*(1:num_iter)
                     end
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(1) - current_weight)/current_weight > .5*switch_threshold
+                    fprintf('t = %f, int = %d, current_phase = %f, new_phase = %f\n', t, k, phases(current_phase,:), neighbor_phases(1,:))
+                    fprintf('neighbor_phase_weight = %f, current_weight = %f\n',neighbor_weights(1), current_weight)
                     to_switch_to(k,:) = setdiff(neighbor_phases(1,:),current_phase);
                     switch_time(k) = 0;
                     if k == 1
@@ -232,6 +241,8 @@ for t = delta_t*(1:num_iter)
                     ints(k).lights(setdiff(current_phase,neighbor_phases(1,:))) = 'y';
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(2) - current_weight)/current_weight > .5*switch_threshold
+                    fprintf('t = %f, int = %d, current_phase = %f, new_phase = %f\n', t, k, phases(current_phase,:), neighbor_phases(2,:))
+                    fprintf('neighbor_phase_weight = %f, current_weight = %f\n',neighbor_weights(2), current_weight)
                     to_switch_to(k,:) = setdiff(neighbor_phases(2,:),current_phase);
                     switch_time(k) = 0;
                     if k == 1
@@ -291,9 +302,9 @@ for t = delta_t*(1:num_iter)
         set(text_box,'Units','characters')
         set(text_box,'Position', [70 15 50 8])
     else
-        text_str = [text_str; 'Int1=', sprintf('%7.1f',weights(1,w_ind,:))];
+        text_str = [text_str; 'Int1=', sprintf('%7.1f',weights(1,w_ind,:)+added_weights(1,w_ind,:))];
         if length(ints) == 2
-            text_str = [text_str; 'Int2=', sprintf('%7.1f',weights(2,w_ind,:))];
+            text_str = [text_str; 'Int2=', sprintf('%7.1f',weights(2,w_ind,:)+added_weights(1,w_ind,:))];
         end
         set(text_box,'String',text_str)
         set(text_box,'Units','characters')
@@ -349,9 +360,9 @@ for t = delta_t*(1:num_iter)
         end
     end
     
-    if mod(t, delta_t*num_iter/10) == 0
-        fprintf('Time = %f\n', t);
-    end
+%     if mod(t, delta_t*num_iter/10) == 0
+%         fprintf('Time = %f\n', t);
+%     end
     
     switch_time = switch_time + delta_t;
     w_ind = w_ind + 1;

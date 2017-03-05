@@ -1,4 +1,4 @@
-function [new_weights,added_weights] = CalcWeights(vehicles, num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, alpha, g, W)
+function [new_weights,added_weights] = CalcWeights(vehicles, num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, stop_time, alpha, g, W, B)
 
 new_weights = zeros(num_int, 1, num_w);
 added_weights = zeros(num_int, 1, num_w);
@@ -42,9 +42,8 @@ for v = 1:length(vehicles)
 end
 
 % Calculates the coordination term B, applies to the right phases
-B = @(alp,E,z,zeta,g) alp*E*max([0, min([z/zeta+1,1,g/zeta,-z/zeta+g/zeta])]);
 for p = 1:size(packets,1)
-    z = -packets(p,3) + t + yellow_time;
+    z = -packets(p,3) + t + yellow_time + stop_time;
     E = packets(p,2);
     zeta = E*1.25;
     old_int = packets(p,1);
@@ -55,7 +54,7 @@ for p = 1:size(packets,1)
         new_int = 1;
         phases_tmp = [3,4];
     end
-    added_weights(new_int,1,phases_tmp) = B(alpha,E,z,zeta,g);
+    added_weights(new_int,1,phases_tmp) = added_weights(new_int,1,phases_tmp) + B(alpha,E,z,zeta,g);
 end
 
 % This ensures weights+added_weights is never negative
