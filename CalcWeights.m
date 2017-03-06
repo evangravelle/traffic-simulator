@@ -1,4 +1,5 @@
-function [new_weights,added_weights] = CalcWeights(vehicles, num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, stop_time, alpha, g, W, B)
+function [new_weights,added_weights] = CalcWeights(vehicles, num_int, num_w, num_lanes, ...
+  wait_thresh, packets, t, yellow_time, stop_time, alpha, min_time, W, B)
 
 new_weights = zeros(num_int, 1, num_w);
 added_weights = zeros(num_int, 1, num_w);
@@ -49,12 +50,12 @@ for p = 1:size(packets,1)
     old_int = packets(p,1);
     if old_int == 1
         new_int = 2;
-        phases_tmp = [7,8];
+        phase_tmp = [7,8];
     elseif old_int == 2
         new_int = 1;
-        phases_tmp = [3,4];
+        phase_tmp = [3,4];
     end
-    added_weights(new_int,1,phases_tmp) = added_weights(new_int,1,phases_tmp) + B(alpha,E,z,zeta,g);
+    added_weights(new_int,1,phase_tmp) = added_weights(new_int,1,phase_tmp) + B(alpha,E,z,zeta,min_time);
 end
 
 % This ensures weights+added_weights is never negative
