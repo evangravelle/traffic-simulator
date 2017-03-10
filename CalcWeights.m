@@ -43,28 +43,21 @@ for v = 1:length(vehicles)
 end
 
 % Calculates the coordination term B, applies to the right phases
-for p = 1:size(packets,1)
-    z = -packets(p,3) + t + yellow_time + stop_time;
-    E = packets(p,2);
-    zeta = E*1.25;
-    old_int = packets(p,1);
-    if old_int == 1
-        new_int = 2;
-        phase_tmp = [7,8];
-    elseif old_int == 2
-        new_int = 1;
-        phase_tmp = [3,4];
+if num_int == 2
+    for p = 1:size(packets,1)
+        z = -packets(p,3) + t + yellow_time + stop_time;
+        E = packets(p,2);
+        zeta = E*1.25;
+        old_int = packets(p,1);
+        if old_int == 1
+            new_int = 2;
+            phase_tmp = [7,8];
+        elseif old_int == 2
+            new_int = 1;
+            phase_tmp = [3,4];
+        end
+        added_weights(new_int,1,phase_tmp) = added_weights(new_int,1,phase_tmp) + B(alpha,E,z,zeta,min_time);
     end
-    added_weights(new_int,1,phase_tmp) = added_weights(new_int,1,phase_tmp) + B(alpha,E,z,zeta,min_time);
 end
-
-% This ensures weights+added_weights is never negative
-% for i = 1:num_int
-%     for j = 1:num_w
-%         if added_weights(i,1,j) + new_weights(i,1,j) < 0
-%             added_weights(i,1,j) = -new_weights(i,1,j);
-%         end
-%     end
-% end
 
 end

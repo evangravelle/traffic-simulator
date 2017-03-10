@@ -1,6 +1,10 @@
 % Written by Evan Gravelle and Julio Martinez
 % 12/11/16
-clear; clc; close all
+% clear; clc; close all
+global alpha
+clearvars -except alpha
+clc;close all
+alpha
 % hold on;
 
 % Initialize parameters
@@ -14,9 +18,9 @@ stop_time = 5; % given by deltaV/minAccel
 phase_length = 60; % time of whole intersection cycle
 min_time = 10; % minimum time spent in a phase
 min_veh = 7;
-alpha = 20; % coefficient on coordination term
+% alpha = 30; % coefficient on coordination term
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
-spawn_rate = 1.5; % average vehicles per second
+spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
 all_straight = false; % true if no turns exist
 num_int = 2; % number of intersections
@@ -24,7 +28,12 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2; 
 lane_length = 150; 
-make_video = true;
+make_video = false;
+make_textbox = true;
+weight_type = 'quadratic';
+main_road = true; % if true, Poisson spawn is nonuniform
+make_plots = false;
+write_file = true;
 
 if all_straight
     straight_list = 1:num_lanes;
@@ -47,7 +56,7 @@ DrawIntersections(ints);
 % hold on
 
 rng(10)
-[ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, 0, delta_t, spawn_type);
+[ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, 0, delta_t, spawn_type, main_road);
 time_enter = 0;
 % make and draw all Vehicles according to chosen roads and lanes
 vehicles = struct;
@@ -57,10 +66,12 @@ vehicles = DrawAllVehicles(ints, vehicles, ints_temp, roads_temp, lanes_temp, ti
 latest_spawn = zeros(num_int, num_roads, num_lanes);
 queue_lengths = zeros(num_int, num_roads, num_lanes, num_iter);
 packets = [];
-int_dist = ints(2).center(1);
 max_accel = 1.8;
 T = 22; % (int_dist-.5*max_speed^2/max_accel)/max_speed; % time for platoon to reach new intersection
 min_times = min_time*ones(num_int,1);
+if num_int == 2
+    int_dist = ints(2).center(1);
+end
 
 % Play this mj2 file with VLC
 % vid_obj = VideoWriter('movie.avi','Archival');
@@ -75,7 +86,11 @@ end
 % W = @(t) c(1) * (t + c(2))^c(3) + c(4);
 % W = @(t) .05 * (t^2 + t);
 % Functions
-W = @(t) .05 * t.^2;
+if strcmp(weight_type, 'linear')
+    W = @(t) t;
+elseif strcmp(weight_type, 'quadratic')
+    W = @(t) .05 * t.^2;
+end
 B = @(alp,E,z,zeta,g) alp*E*max([0, min([z/zeta+1,1,g/zeta,-z/zeta+g/zeta])]);
 
 switch_time = Inf*ones(num_int,1);
@@ -211,9 +226,9 @@ for t = delta_t*(1:num_iter)
                 neighbor_weights = phase_weights(neighbor_phase_inds);
                 if (max_phase_weight - current_weight)/current_weight > switch_threshold
                     new_phase = phases(max_ind,:);
-                    fprintf('t = %f, int = %d, current_phase = [%d %d], new_phase = [%d %d]\n', t, k, ...
-                      current_phase(1), current_phase(2), new_phase(1), new_phase(2))
-                    fprintf('max_phase_weight = %f, current_weight = %f\n', max_phase_weight, current_weight)
+                    % fprintf('t = %f, int = %d, current_phase = [%d %d], new_phase = [%d %d]\n', t, k, ...
+                    %   current_phase(1), current_phase(2), new_phase(1), new_phase(2))
+                    % fprintf('max_phase_weight = %f, current_weight = %f\n', max_phase_weight, current_weight)
                     min_times = calcMinTimes(new_phase, num_lanes, queue_lengths, k, ... 
                       w_ind, min_times, min_time, packets, yellow_time, t);
                     to_switch_to(k,:) = new_phase;
@@ -231,9 +246,9 @@ for t = delta_t*(1:num_iter)
                     end
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(1) - current_weight)/current_weight > .5*switch_threshold
-                    new_phase = setdiff(neighbor_phases(1,:),current_phase)
-                    fprintf('t = %f, int = %d, current_phase = %d, new_phase = %d\n', t, k, phases(current_phase,:), new_phase)
-                    fprintf('neighbor_phase_weight = %f, current_weight = %f\n', neighbor_weights(1), current_weight)
+                    new_phase = setdiff(neighbor_phases(1,:),current_phase);
+                    % fprintf('t = %f, int = %d, current_phase = %d, new_phase = %d\n', t, k, phases(current_phase,:), new_phase)
+                    % fprintf('neighbor_phase_weight = %f, current_weight = %f\n', neighbor_weights(1), current_weight)
                     min_times = calcMinTimes(new_phase, num_lanes, queue_lengths, k, ...
                       w_ind, min_times, min_time, packets, yellow_time, t);
                     to_switch_to(k,:) = new_phase;
@@ -246,9 +261,9 @@ for t = delta_t*(1:num_iter)
                     ints(k).lights(setdiff(current_phase,neighbor_phases(1,:))) = 'y';
                     % hnd = DrawLights(ints, hnd);
                 elseif (neighbor_weights(2) - current_weight)/current_weight > .5*switch_threshold
-                    new_phase = setdiff(neighbor_phases(2,:),current_phase)
-                    fprintf('t = %f, int = %d, current_phase = %d, new_phase = %d\n', t, k, phases(current_phase,:), new_phase)
-                    fprintf('neighbor_phase_weight = %f, current_weight = %f\n', neighbor_weights(2), current_weight)
+                    new_phase = setdiff(neighbor_phases(2,:),current_phase);
+                    % fprintf('t = %f, int = %d, current_phase = %d, new_phase = %d\n', t, k, phases(current_phase,:), new_phase)
+                    % fprintf('neighbor_phase_weight = %f, current_weight = %f\n', neighbor_weights(2), current_weight)
                     min_times = calcMinTimes(new_phase, num_lanes, queue_lengths, k, ...
                       w_ind, min_times, min_time, packets, yellow_time, t);
                     to_switch_to(k,:) = new_phase;
@@ -289,37 +304,41 @@ for t = delta_t*(1:num_iter)
     
     title_str = sprintf('Time = %.2f', t);
     title(title_str)
-    text_box = uicontrol('style','text');
-    if strcmp(policy, 'custom')
-        text_str = ['Custom Policy       ', ints(1).lights, '                   ', ints(2).lights, '      '];
-    elseif strcmp(policy, 'cycle')
-        text_str = ['Cycle Policy        ', ints(1).lights, '                   ', ints(2).lights, '      '];
-    end
     % disp(length(text_str))
     % disp(length(['Int1=', sprintf('%7.1f',weights(1,w_ind,:))]))
-    if all_straight
-        text_str = [text_str;
-            '  vertical weight1 = ', sprintf('%8.2f',weights(1,w_ind,1));
-            'horizontal weight1 = ', sprintf('%8.2f',weights(1,w_ind,2))];
-        if length(ints) == 2
+    
+    % Right now, the textboxes don't get deleted, a new one gets put on top
+    if make_textbox
+        text_box = uicontrol('style','text');
+        if strcmp(policy, 'custom')
+            text_str = ['Custom Policy       ', ints(1).lights, '                   ', ints(2).lights, '      '];
+        elseif strcmp(policy, 'cycle')
+            text_str = ['Cycle Policy        ', ints(1).lights, '                   ', ints(2).lights, '      '];
+        end
+        if all_straight
             text_str = [text_str;
-                '  vertical weight2 = ', sprintf('%8.2f',weights(2,w_ind,1));
-                'horizontal weight2 = ', sprintf('%8.2f',weights(2,w_ind,2))];
-        end
-        set(text_box,'String',text_str)
-        set(text_box,'Units','characters')
-        set(text_box,'Position', [70 15 50 8])
-    else
-        text_str = [text_str; 'Int1=', sprintf('%7.1f',weights(1,w_ind,:)+added_weights(1,w_ind,:))];
-        if length(ints) == 2
-            text_str = [text_str; 'Int2=', sprintf('%7.1f',weights(2,w_ind,:)+added_weights(2,w_ind,:))];
-        end
-        set(text_box,'String',text_str)
-        set(text_box,'Units','characters')
-        if num_int == 1
-            set(text_box,'Position', [25 15 60 8])
+                '  vertical weight1 = ', sprintf('%8.2f',weights(1,w_ind,1));
+                'horizontal weight1 = ', sprintf('%8.2f',weights(1,w_ind,2))];
+            if length(ints) == 2
+                text_str = [text_str;
+                    '  vertical weight2 = ', sprintf('%8.2f',weights(2,w_ind,1));
+                    'horizontal weight2 = ', sprintf('%8.2f',weights(2,w_ind,2))];
+            end
+            set(text_box,'String',text_str)
+            set(text_box,'Units','characters')
+            set(text_box,'Position', [70 15 50 8])
         else
-            set(text_box,'Position', [63 15 60 8])
+            text_str = [text_str; 'Int1=', sprintf('%7.1f',weights(1,w_ind,:)+added_weights(1,w_ind,:))];
+            if length(ints) == 2
+                text_str = [text_str; 'Int2=', sprintf('%7.1f',weights(2,w_ind,:)+added_weights(2,w_ind,:))];
+            end
+            set(text_box,'String',text_str)
+            set(text_box,'Units','characters')
+            if num_int == 1
+                set(text_box,'Position', [25 15 60 8])
+            else
+                set(text_box,'Position', [63 15 60 8])
+            end
         end
     end
     
@@ -347,7 +366,7 @@ for t = delta_t*(1:num_iter)
     end
     
     % Now spawn new vehicles
-    [ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, t, delta_t, spawn_type);
+    [ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, t, delta_t, spawn_type, main_road);
     if isempty(fieldnames(vehicles(1)))
         ctr = 0; % overwrites the empty vehicle
     else
@@ -394,44 +413,60 @@ for v = 1:length(vehicles)
     total_weighted_wait_time = total_weighted_wait_time + sum(W(vehicles(v).wait));
 end
 
-figure
-hold on
-for z = 1:2 % num_int
-    for i = 1:num_w
-        plot(delta_t*(0:num_iter-1), weights(z,:,i))
-    end
+if write_file
+    fid = fopen('alphas.txt', 'a');
+    fprintf(fid, '%f %f %f %f\n', alpha, total_time, total_wait_time, total_weighted_wait_time);
+    fclose(fid);
 end
-plot(switch_log1, zeros(length(switch_log1),1), '*')
-if num_int == 2 
-    plot(switch_log2, zeros(length(switch_log2),1), '*')
-end
-xlabel('Time (s)')
-ylabel('Weight')
-title('Road weights')
-ax = gca;
-set(ax,'FontName','Times')
-set(ax,'FontSize',14)
-% legend('NS1', 'EW1', 'NS2', 'EW2')
-saveas(gcf, 'weight_plot', 'png')
 
-figure
-hold on
-%for i = 1:num_int*num_lanes*num_roads
-for int = 1:num_int
-    for road = 1:num_roads
-        for lane = 1:num_lanes
-            len = size(queue_lengths,4);
-            plot(delta_t*(0:len-1), reshape(queue_lengths(int,road,lane,:),1,len))
+if make_plots
+    figure
+    hold on
+    for z = 1:num_int
+        for i = 1:num_w
+            plot(delta_t*(0:num_iter-1), weights(z,:,i))
         end
     end
+    plot(switch_log1, zeros(length(switch_log1),1), '*')
+    if num_int == 2
+        plot(switch_log2, zeros(length(switch_log2),1), '*')
+    end
+    xlabel('Time (s)')
+    ylabel('Weighted wait-time (sec*sec)')
+    title('Cost of each phase')
+    ax = gca;
+    set(ax,'FontName','Times')
+    set(ax,'FontSize',14)
+    saveas(gcf, 'weight_plot_custom_alpha40_spawn15_mainrd', 'png')
+    saveas(gcf, 'weight_plot_custom_alpha40_spawn15_mainrd', 'fig')
+    
+    figure
+    hold on
+    %for i = 1:num_int*num_lanes*num_roads
+    % for int = 1:num_int
+    %     for road = 1:num_roads
+    %         for lane = 1:num_lanes
+    %             len = size(queue_lengths,4);
+    %             plot(delta_t*(0:len-1), reshape(queue_lengths(int,road,lane,:),1,len))
+    %         end
+    %     end
+    % end
+    len = size(queue_lengths,4);
+    Q_max = zeros(len,1);
+    for t = 1:len
+        tmp = queue_lengths(:,:,:,t);
+        Q_max(t) = max(tmp(:));
+    end
+    plot(delta_t*(0:len-1), Q_max)
+    title('Length of Queues')
+    xlabel('Time (s)')
+    ylabel('Queue length (veh)')
+    ax = gca;
+    set(ax,'FontName','Times')
+    set(ax,'FontSize',14)
+    % saveas(gcf, 'queue_plot', 'fig')
+    % saveas(gcf, 'queue_plot', 'png')
 end
-title('Length of Queues')
-xlabel('Time (s)')
-ylabel('Queue length (num veh)')
-ax = gca;
-set(ax,'FontName','Times')
-set(ax,'FontSize',14)
-saveas(gcf, 'queue_plot', 'png')
 
 % TO DO LIST
 % All the random stuff mentioned in the code already
