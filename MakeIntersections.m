@@ -17,7 +17,7 @@ end
 % Make the Intersection
 for k = 1:num_int
     ints(k).center = [(k-1)*2*(lane_length + num_lanes*lane_width), 0];
-    ints(k).lights = init_lights;
+    ints(k).lights = init_lights(k,:);
     for j = 1:4 % 4 roads
         ints(k).roads(j).lane_width = lane_width; %width of each lane at intersection
         ints(k).roads(j).length = lane_length; %length of each road

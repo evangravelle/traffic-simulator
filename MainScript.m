@@ -1,24 +1,26 @@
-% Written by Evan Gravelle and Julio Martinez
+% Written by Evan Gravelle
 % 12/11/16
 % clear; clc; close all
 global alpha
 clearvars -except alpha
-clc;close all
-alpha
+clc; close all
+% alpha
 % hold on;
 
 % Initialize parameters
 delta_t = .1;
-num_iter = 1200;
+num_iter = 3000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
 policy = 'custom'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 stop_time = 5; % given by deltaV/minAccel
+split = .44; % the percent of time spend in the LESS dense road
 phase_length = 60; % time of whole intersection cycle
+offset = 17.5; % the right intersection is ahead of the left one by this amount
 min_time = 10; % minimum time spent in a phase
 min_veh = 7;
-% alpha = 30; % coefficient on coordination term
+alpha = 0; % coefficient on coordination term
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson'
@@ -28,12 +30,12 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2; 
 lane_length = 150; 
-make_video = false;
+make_video = true;
 make_textbox = true;
 weight_type = 'quadratic';
 main_road = true; % if true, Poisson spawn is nonuniform
 make_plots = false;
-write_file = true;
+write_file = false;
 
 if all_straight
     straight_list = 1:num_lanes;
@@ -48,7 +50,24 @@ else
     % row = joint phase number, column = which lane is constant
     phases_compat_inds = [2 3;1 4;1 4;2 3;6 7;5 8;5 8;6 7]; 
     phases = [2 6;1 2;5 6;1 5;4 8;3 4;7 8;3 7];
-    init_lights = 'rgrrrgrr';
+    init_lights = 'grrrgrrr';
+    if offset < mod(phase_length*split/2 - yellow_time, phase_length+eps)
+        init_lights = [init_lights; 'grrrgrrr'];
+    elseif offset < mod(phase_length*split/2, phase_length+eps)
+        init_lights = [init_lights; 'yrrryrrr'];
+    elseif offset < mod(phase_length*split - yellow_time, phase_length+eps)
+        init_lights = [init_lights; 'rgrrrgrr'];
+    elseif offset < mod(phase_length*split, phase_length+eps)
+        init_lights = [init_lights; 'ryrrryrr'];
+    elseif offset < mod(phase_length*(split + (1-split)/2) - yellow_time, phase_length+eps)
+        init_lights = [init_lights; 'rrgrrrgr'];
+    elseif offset < mod(phase_length*(split + (1-split)/2), phase_length+eps)
+        init_lights = [init_lights; 'rryrrryr'];
+    elseif offset < mod(phase_length - yellow_time, phase_length+eps)
+        init_lights = [init_lights; 'rrrgrrrg'];
+    else
+        init_lights = [init_lights; 'rrryrrry'];
+    end
 end
 
 ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, init_lights, all_straight);
@@ -69,6 +88,7 @@ packets = [];
 max_accel = 1.8;
 T = 22; % (int_dist-.5*max_speed^2/max_accel)/max_speed; % time for platoon to reach new intersection
 min_times = min_time*ones(num_int,1);
+eps = .001;
 if num_int == 2
     int_dist = ints(2).center(1);
 end
@@ -140,22 +160,42 @@ for t = delta_t*(1:num_iter)
             hnd = DrawLights(ints, hnd);
             
         elseif strcmp(policy, 'cycle') && all_straight == false
-            if mod(t,phase_length) < phase_length/4 - yellow_time
-                ints(k).lights = 'grrrgrrr';
-            elseif mod(t,phase_length) < phase_length/4
-                ints(k).lights = 'yrrryrrr';
-            elseif mod(t,phase_length) < phase_length/2 - yellow_time
-                ints(k).lights = 'rgrrrgrr';
-            elseif mod(t,phase_length) < phase_length/2
-                ints(k).lights = 'ryrrryrr';
-            elseif mod(t,phase_length) < 3*phase_length/4 - yellow_time
-                ints(k).lights = 'rrgrrrgr';
-            elseif mod(t,phase_length) < 3*phase_length/4
-                ints(k).lights = 'rryrrryr';
-            elseif mod(t,phase_length) < phase_length - yellow_time
-                ints(k).lights = 'rrrgrrrg';
-            elseif mod(t,phase_length) < phase_length
-                ints(k).lights = 'rrryrrry';
+            if k == 2
+                if mod(t-offset,phase_length) < phase_length*split/2 - yellow_time
+                    ints(k).lights = 'grrrgrrr';
+                elseif mod(t-offset,phase_length) < phase_length*split/2
+                    ints(k).lights = 'yrrryrrr';
+                elseif mod(t-offset,phase_length) < phase_length*split - yellow_time
+                    ints(k).lights = 'rgrrrgrr';
+                elseif mod(t-offset,phase_length) < phase_length*split
+                    ints(k).lights = 'ryrrryrr';
+                elseif mod(t-offset,phase_length) < phase_length*(.5+split/2) - yellow_time
+                    ints(k).lights = 'rrgrrrgr';
+                elseif mod(t-offset,phase_length) < phase_length*(.5+split/2)
+                    ints(k).lights = 'rryrrryr';
+                elseif mod(t-offset,phase_length) < phase_length - yellow_time
+                    ints(k).lights = 'rrrgrrrg';
+                else
+                    ints(k).lights = 'rrryrrry';
+                end
+            elseif k == 1
+                if mod(t,phase_length) < phase_length*split/2 - yellow_time
+                    ints(k).lights = 'grrrgrrr';
+                elseif mod(t,phase_length) < phase_length*split/2
+                    ints(k).lights = 'yrrryrrr';
+                elseif mod(t,phase_length) < phase_length*split - yellow_time
+                    ints(k).lights = 'rgrrrgrr';
+                elseif mod(t,phase_length) < phase_length*split
+                    ints(k).lights = 'ryrrryrr';
+                elseif mod(t,phase_length) < phase_length*(split + (1-split)/2) - yellow_time
+                    ints(k).lights = 'rrgrrrgr';
+                elseif mod(t,phase_length) < phase_length*(split + (1-split)/2)
+                    ints(k).lights = 'rryrrryr';
+                elseif mod(t,phase_length) < phase_length - yellow_time
+                    ints(k).lights = 'rrrgrrrg';
+                else
+                    ints(k).lights = 'rrryrrry';
+                end
             end
             
         elseif strcmp(policy, 'custom') && all_straight == true
