@@ -17,3 +17,6 @@ title('Performance Metrics')
 xlabel('Coordination coefficient (alpha)')
 ylabel('Time (seconds)')
 legend('tt','twt','twwt')
+ax = gca;
+set(ax,'FontName','Times')
+set(ax,'FontSize',14)
