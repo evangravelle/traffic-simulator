@@ -26,7 +26,7 @@ plot(data(:,1),data(:,2),'k-')
 plot(data(:,1),data(:,3),'k--')
 plot(data(:,1),data(:,4),'k:')
 title('Performance with coordination')
-xlabel('Alpha')
+xlabel('Coordination Coefficient ($\alpha$)', 'Interpreter', 'LaTeX')
 ylabel('Performance (sec)')
 legend('tt','twt','twwt')
 ax = gca;

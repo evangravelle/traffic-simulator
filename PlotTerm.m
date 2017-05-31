@@ -18,9 +18,9 @@ end
 plot(z,B)
 xlim([-20 30])
 ylim([-1 2])
-xlabel('z (seconds)')
-ylabel('B')
 title('Coordination term')
 ax = gca;
+xlabel('z (seconds)')
+ylabel('$B_{\ell}$', 'Interpreter', 'LaTeX')
 set(ax,'FontName','Times')
 set(ax,'FontSize',14)

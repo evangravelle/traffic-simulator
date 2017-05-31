@@ -11,7 +11,7 @@ clc; close all
 delta_t = .1;
 num_iter = 3000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-policy = 'custom'; % the options are 'custom' or 'cycle'
+policy = 'cycle'; % the options are 'custom' or 'cycle'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 stop_time = 5; % given by deltaV/minAccel
@@ -30,7 +30,7 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2; 
 lane_length = 150; 
-make_video = true;
+make_video = false;
 make_textbox = true;
 weight_type = 'quadratic';
 main_road = true; % if true, Poisson spawn is nonuniform
