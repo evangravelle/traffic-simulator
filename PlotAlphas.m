@@ -9,20 +9,20 @@ twt = [3.9, 3.84, 3.98, 3.94, 3.96, 4.61];
 twwt = [4.72, 4.46, 4.86, 4.71, 4.81, 6.52];
 
 figure
-semilogx(alpha, tt, 'k-')
+semilogx(alpha, tt, 'k-', 'LineWidth', 2)
 hold on
-semilogx(alpha, twt, 'k--')
-semilogx(alpha, twwt, 'k:')
-semilogx(0.01, 8.920, 'k*')
-semilogx(0.01, 4.800, 'ko')
-semilogx(0.01, 7.500, 'kp')
+semilogx(alpha, twt, 'k-.', 'LineWidth', 2)
+semilogx(alpha, twwt, 'k:', 'LineWidth', 2)
+semilogx(alpha, 8.920*ones(6,1), 'b-', 'LineWidth', .5)
+semilogx(alpha, 4.800*ones(6,1), 'b-.', 'LineWidth', .5)
+semilogx(alpha, 7.500*ones(6,1), 'b:', 'LineWidth', .5)
 title('Performance Metrics')
 xlabel('Coordination coefficient ($\alpha$)', 'Interpreter', 'LaTeX')
 ylabel('Time (kiloseconds)')
 h = zeros(3,1);
-h(1) = plot(NaN,NaN,'k-*');
-h(2) = plot(NaN,NaN,'k--o');
-h(3) = plot(NaN,NaN,'k:p');
+h(1) = plot(NaN,NaN,'k-');
+h(2) = plot(NaN,NaN,'k--');
+h(3) = plot(NaN,NaN,'k:');
 legend(h,'tt','twt','twwt', 'Location', 'West')
 ax = gca;
 set(ax,'FontName','Times')
