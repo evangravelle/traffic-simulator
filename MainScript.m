@@ -4,8 +4,7 @@
 global alpha
 clearvars -except alpha
 clc; close all
-% alpha
-% hold on;
+addpath('MiscFunctions')
 
 % Initialize parameters
 delta_t = .1;
@@ -30,7 +29,7 @@ num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
 lane_width = 3.2; 
 lane_length = 150; 
-make_video = false;
+make_video = true;
 make_textbox = true;
 weight_type = 'quadratic';
 main_road = true; % if true, Poisson spawn is nonuniform
@@ -269,7 +268,7 @@ for t = delta_t*(1:num_iter)
                     % fprintf('t = %f, int = %d, current_phase = [%d %d], new_phase = [%d %d]\n', t, k, ...
                     %   current_phase(1), current_phase(2), new_phase(1), new_phase(2))
                     % fprintf('max_phase_weight = %f, current_weight = %f\n', max_phase_weight, current_weight)
-                    min_times = calcMinTimes(new_phase, num_lanes, queue_lengths, k, ... 
+                    min_times = CalcMinTimes(new_phase, num_lanes, queue_lengths, k, ... 
                       w_ind, min_times, min_time, packets, yellow_time, t);
                     to_switch_to(k,:) = new_phase;
                     switch_time(k) = 0;
@@ -384,7 +383,7 @@ for t = delta_t*(1:num_iter)
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicles))
-        vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, yellow_time, t, delta_t);
+        vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t);
         for v = 1:length(vehicles)
             if vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
                 queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) = ...

@@ -1,7 +1,9 @@
 # traffic-simulator
 
-This is a microscopic traffic simulator, focused on accurately modeling intersections, written in MATLAB.
+This is a microscopic traffic simulator, focused on accurately modeling intersections, written in MATLAB
+Warning, it is messy, written by Evan Gravelle, 2017
 
-open testScript.m and run
-
-http://www.mathworks.com/help/matlab/matlab_prog/techniques-for-improving-performance.html
+MainScript.m runs main simulation, should work out of the box
+LoopMain.m allows multiple runs of MainScript.m, must change parameters in MainScript.m to save things
+MiscFunctions contains functions called by MainScript.m
+PlotScripts contains scripts to generate various plots
