@@ -4,8 +4,7 @@
 function vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t)
 % Outputs vehicle array with new positions after delta_t seconds
 
-% calculates positions of vehicle and ahead, for use in velocity
-% calcs
+% calculates positions of vehicle and ahead, for use in velocity calcs
 V = length(vehicles);
 lane_global = zeros(V,1);
 ahead_lane_global = zeros(V,1);

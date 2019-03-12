@@ -28,14 +28,14 @@ if strcmp(spawn_type, 'constant')
     
 % Spawn from Poisson distribution
 elseif strcmp(spawn_type, 'poisson')
-    num_vehicles = poissrnd(spawn_rate*delta_t);
+    num_vehicles = PoissRnd(spawn_rate*delta_t, 1);
   
     % max number of vehicle has upper bound by number of lanes
     max_num_vehicles = (.5+.5*num_int)*num_roads*num_lanes;
   
     % check if too many vehicles spawned
     while num_vehicles > max_num_vehicles
-        num_vehicles = poissrnd(spawn_rate*delta_t); % if so, resample
+        num_vehicles = PoissRnd(spawn_rate*delta_t, 1); % if so, resample
     end
   
     if num_vehicles > 0
