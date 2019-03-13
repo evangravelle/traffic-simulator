@@ -1,4 +1,4 @@
-% Written by Evan Gravelle and Julio Martinez
+% Written by Evan Gravelle
 % 12/11/16
 
 function vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t)

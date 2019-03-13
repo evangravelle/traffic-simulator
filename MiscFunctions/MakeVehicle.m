@@ -1,4 +1,4 @@
-% Written by Evan Gravelle and Julio Martinez
+% Written by Evan Gravelle
 % 12/11/16
 
 function vehicles = MakeVehicle(ints, vehicles, i, int, road, lane, time_enter, max_speed)

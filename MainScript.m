@@ -23,7 +23,7 @@ alpha = 0; % coefficient on coordination term
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
 spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson' or 'constant'
-all_straight = true; % true if no turns exist
+all_straight = false; % true if no turns exist
 num_int = 2; % number of intersections
 num_roads = 4; % number of roads
 num_lanes = 3; % number of lanes
@@ -46,7 +46,7 @@ else
     turn_radius = [.5*lane_width, Inf, (num_lanes+.5)*lane_width];
     turn_length = [pi/2*.5*lane_width, 2*num_lanes*lane_width, pi/2*(num_lanes+.5)*lane_width];
     % each element describes which phase is compatible by holding one direction constant.
-    % row = joint phase number, column = which lane is constant
+    % row = joint phase number, column = which phase is constant
     phases_compat_inds = [2 3;1 4;1 4;2 3;6 7;5 8;5 8;6 7]; 
     phases = [2 6;1 2;5 6;1 5;4 8;3 4;7 8;3 7];
     init_lights = 'grrrgrrr';
@@ -71,7 +71,6 @@ end
 
 ints = MakeIntersections(num_int, lane_width, lane_length, num_lanes, init_lights, all_straight);
 DrawIntersections(ints);
-% hold on
 
 rng(10)
 [ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, 0, delta_t, spawn_type, main_road);
@@ -87,9 +86,6 @@ max_accel = 1.8;
 T = 22; % (int_dist-.5*max_speed^2/max_accel)/max_speed; % time for platoon to reach new intersection
 min_times = min_time*ones(num_int,1);
 eps = .001;
-if num_int == 2
-    int_dist = ints(2).center(1);
-end
 
 % Play this mj2 file with VLC
 if make_video
@@ -121,6 +117,8 @@ else
 end
 weights = zeros(num_int,num_iter,num_w);
 added_weights = zeros(num_int,num_iter,num_w);
+time_of_phase = zeros(num_int,num_w);
+counts = zeros(num_int,num_w);
 
 w_ind = 1;
 % Run simulation
@@ -131,6 +129,10 @@ for t = delta_t*(1:num_iter)
         if ~isempty(fieldnames(vehicles))
             [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, ...
                 num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, stop_time, alpha, min_time, W, B);
+        end
+    elseif strcmp(policy, 'tapioca')
+        if ~isempty(fieldnames(vehicles))
+            counts = CalcCounts(vehicles, num_int, num_w, num_lanes);
         end
     end
     
@@ -248,7 +250,7 @@ for t = delta_t*(1:num_iter)
                 % if stuck in yellow
                 if switch_time(k) < yellow_time
                     % do nothing
-                    % if stuck in green
+                % if stuck in green
                 elseif switch_time(k) < yellow_time + min_times(k)
                     inds = strfind(ints(k).lights, 'y');
                     if ~isempty(inds)
@@ -256,7 +258,7 @@ for t = delta_t*(1:num_iter)
                         ints(k).lights(to_switch_to(k,:)) = 'g';
                         % hnd = DrawLights(ints, hnd);
                     end
-                    % if switching is an option
+                % if switching is an option
                 else
                     inds = strfind(ints(k).lights, 'g');
                     [~, current_phase_ind] = ismember(inds, phases, 'rows');
@@ -324,20 +326,104 @@ for t = delta_t*(1:num_iter)
                     end
                 end
             end
-        elseif strcmp(policy, 'custom')
+            
+        elseif strcmp(policy, 'tapioca')
             
             if all_straight
-                N = 0;
-                Tt = 0;
-                LS = 1*N + 1*Tt;
-                GE = 0;
-                R = 0;
-                score = 1*LS + 1*GE + 1*R;
-                ints(k).lights = 'ryry';
+                % Not yet implemented
             else
                 
-            end
-            
+                % if stuck in yellow
+                if switch_time(k) < yellow_time
+                    % do nothing
+                % if stuck in green
+                elseif switch_time(k) < yellow_time + min_times(k)
+                    inds = strfind(ints(k).lights, 'y');
+                    if ~isempty(inds)
+                        ints(k).lights(inds) = 'r';
+                        ints(k).lights(to_switch_to(k,:)) = 'g';
+                    end
+                % if switching is an option
+                else
+                    % Term 1, calculated at top of loop
+                    
+                    % Term 2
+                    times = t - time_of_phase;
+                    times(1,:) = times(1,:) / sum(times(1,:));
+                    times(2,:) = times(2,:) / sum(times(2,:));
+                    
+                    LS = zeros(num_int,num_w);
+                    norm_counts = zeros(num_int,num_w);
+                    if sum(counts(1,:)) ~= 0
+                        norm_counts(1,:) = counts(1,:) / sum(counts(1,:));
+                    end
+                    if sum(counts(2,:)) ~= 0
+                        norm_counts(2,:) = counts(2,:) / sum(counts(2,:));
+                    end
+                    LS(1,:) = 1*norm_counts(1,:) + 1*times(1,:);
+                    LS(2,:) = 1*norm_counts(2,:) + 1*times(2,:);
+                    
+                    % Term 3
+                    out_counts = zeros(1,num_w);
+                    if k == 2
+                        out_counts(1,2) = sum(counts(1, [7 8]));
+                        out_counts(1,7) = sum(counts(1, [7 8]));
+                    elseif k == 1
+                        out_counts(1,2) = sum(counts(2, [3 4]));
+                        out_counts(1,7) = sum(counts(2, [3 4]));
+                    end
+                    GE = norm_counts(k,:) - out_counts;
+                    
+                    % Term 4
+                    R = zeros(1,num_w);
+                    if k == 2
+                        D_score = [LS(1,1) + LS(1,4)
+                            LS(1,3) + LS(1,6)
+                            LS(1,5) + LS(1,8)
+                            LS(1,2) + LS(1,7)];
+                        [~, sorted_inds] = sort(D_score);
+                        R([7 8]) = find(sorted_inds == 4) / 10;
+                    elseif k == 1
+                        D_score = [LS(2,1) + LS(2,4)
+                            LS(2,3) + LS(2,6)
+                            LS(2,5) + LS(2,8)
+                            LS(2,2) + LS(2,7)];
+                        [~, sorted_inds] = sort(D_score);
+                        R([3 4]) = find(sorted_inds == 2) / 10;
+                    end
+                    score = 1 * LS + 1 * GE + 1 * R;
+                    
+                    phase_scores = zeros(num_w,1);
+                    for tmp = 1:num_w
+                        phase_scores(tmp) = sum(score(phases(tmp,:)));
+                    end
+                                        
+                    [max_score, max_ind] = max(phase_scores);
+                    new_phase = phases(max_ind,:);
+                    
+                    inds = strfind(ints(k).lights, 'g');
+                    [~, current_phase_ind] = ismember(inds, phases, 'rows');
+                    current_phase = phases(current_phase_ind, :);
+                    
+                    min_times = CalcMinTimes(max_ind, num_lanes, queue_lengths, k, ...
+                      w_ind, min_times, min_time, [], yellow_time, t);
+                    
+                    if ~ismember(current_phase(1), new_phase)
+                        ints(k).lights(current_phase(1)) = 'y';
+                    end
+                    if ~ismember(current_phase(2), new_phase)
+                        ints(k).lights(current_phase(2)) = 'y';
+                    end
+                        
+                    to_switch_to(k,:) = new_phase;
+                    switch_time(k) = 0;
+                    if k == 1
+                        switch_log1 = [switch_log1, t];
+                    elseif k == 2
+                        switch_log2 = [switch_log2, t];
+                    end
+                end
+            end 
         end
         
         % if switching to enable flow toward another intersection, create packet
@@ -358,8 +444,11 @@ for t = delta_t*(1:num_iter)
                 packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind-1)]), t + T];
             end
         elseif strcmp(policy, 'tapioca')
-            
+            packets = [];
         end
+        
+        active_phase_inds = [strfind('g', ints(k).lights), strfind('y', ints(k).lights)];
+        time_of_phase(active_phase_inds,k) = t;
     end
     
     if mod(t, 1) == 0
@@ -379,6 +468,8 @@ for t = delta_t*(1:num_iter)
             text_str = ['Custom Policy       ', ints(1).lights, '                   ', ints(2).lights, '      '];
         elseif strcmp(policy, 'cycle')
             text_str = ['Cycle Policy        ', ints(1).lights, '                   ', ints(2).lights, '      '];
+        elseif strcmp(policy, 'tapioca')
+            text_str = ['TAPIOCA Policy      ', ints(1).lights, '                   ', ints(2).lights, '      '];
         end
         if all_straight
             text_str = [text_str;
@@ -411,7 +502,10 @@ for t = delta_t*(1:num_iter)
     if ~isempty(fieldnames(vehicles))
         vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t);
         for v = 1:length(vehicles)
-            if vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
+            if strcmp(policy, 'tapioca')
+                queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) = ...
+                  queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) + 1;
+            elseif vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
                 queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) = ...
                   queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) + 1;
             end

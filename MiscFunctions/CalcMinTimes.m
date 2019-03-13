@@ -7,7 +7,7 @@ if mod(new_phase(1),2) == 1
 else
     ln1 = 1:num_lanes-1;
 end
-q1 = max(queue_lengths(int, rd1, ln1, w_ind-1));
+q1 = max(queue_lengths(int, rd1, ln1, w_ind));
 
 if length(new_phase) == 2
     rd2 = ceil(new_phase(2)/2);
@@ -16,7 +16,7 @@ if length(new_phase) == 2
     else
         ln2 = 1:num_lanes-1;
     end
-    q2 = max(queue_lengths(int, rd2, ln2, w_ind-1));
+    q2 = max(queue_lengths(int, rd2, ln2, w_ind));
 else
     q2 = 0;
 end
