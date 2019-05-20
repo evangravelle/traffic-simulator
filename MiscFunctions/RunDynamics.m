@@ -165,7 +165,6 @@ for v = 1:V
         % After speeding up
         v2 = vehicles(v).velocity + vehicles(v).max_accel*delta_t;
         
-        int_length = 2 * ints(current_int).roads(current_road).lane_width * num_lanes;
         int_dist = ints(current_int).roads(current_road).length - vehicles(v).dist_in_lane;
         brake_dist_i = 0.5*vehicles(v).velocity^2/abs(vehicles(v).min_accel); 
         

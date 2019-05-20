@@ -7,10 +7,13 @@ clc; close all
 addpath('MiscFunctions')
 
 % Initialize parameters
+policy = 'custom'; % the options are 'custom', 'cycle', or 'tapioca'
+spawn_rate = 1.0; % average vehicles per second
+alpha = 1; % coefficient on coordination term
+
 delta_t = .1;
-num_iter = 300;
+num_iter = 3000;
 wait_thresh = 0.1; % number between 0 and 1, 0 means time is added once a vehicle is stopped, 1 means time is added after slowing from max
-policy = 'tapioca'; % the options are 'custom', 'cycle', or 'tapioca'
 max_speed = 20; % speed limit of system
 yellow_time = max_speed/4; % this is heuristic
 stop_time = 5; % given by deltaV/minAccel
@@ -19,9 +22,7 @@ phase_length = 60; % time of whole intersection cycle
 offset = 17.5; % the right intersection is ahead of the left one by this amount
 min_time = 10; % minimum time spent in a phase
 min_veh = 7;
-alpha = 0; % coefficient on coordination term
 switch_threshold = 1; % 0 means wait time must be greater to switch, 1 means double
-spawn_rate = .8; % average vehicles per second
 spawn_type = 'poisson'; % 'poisson' or 'constant'
 all_straight = false; % true if no turns exist
 num_int = 2; % number of intersections
@@ -80,7 +81,7 @@ vehicles = struct;
 vehicles = DrawAllVehicles(ints, vehicles, ints_temp, roads_temp, lanes_temp, time_enter, max_speed);
 % This keeps track of last vehicle to spawn in each lane, to check for collisions
 latest_spawn = zeros(num_int, num_roads, num_lanes);
-queue_lengths = zeros(num_int, num_roads, num_lanes, num_iter);
+queue_lengths = zeros(num_int, num_roads, num_lanes, num_iter+1);
 packets = [];
 max_accel = 1.8;
 T = 22; % (int_dist-.5*max_speed^2/max_accel)/max_speed; % time for platoon to reach new intersection
@@ -89,7 +90,8 @@ eps = .001;
 
 % Play this mj2 file with VLC
 if make_video
-    vid_obj = VideoWriter('movie');
+    vid_name = [policy, '_', num2str(spawn_rate)];
+    vid_obj = VideoWriter(vid_name);
     vid_obj.FrameRate = 1/delta_t;
     open(vid_obj)
 end
@@ -119,22 +121,28 @@ weights = zeros(num_int,num_iter,num_w);
 added_weights = zeros(num_int,num_iter,num_w);
 time_of_phase = zeros(num_int,num_w);
 counts = zeros(num_int,num_w);
+score = zeros(num_int,num_w);
+
+tic_times = zeros(6,num_iter);
+first = true;
 
 w_ind = 1;
 % Run simulation
-for t = delta_t*(1:num_iter)
-    
+for i = 1:num_iter
+    t = delta_t * i;
+    tic;
     % Calculate weights in each lane
-    if strcmp(policy, 'custom')
-        if ~isempty(fieldnames(vehicles))
-            [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, ...
-                num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, stop_time, alpha, min_time, W, B);
-        end
-    elseif strcmp(policy, 'tapioca')
+    if ~isempty(fieldnames(vehicles))
+        [weights(:,w_ind,:), added_weights(:,w_ind,:)] = CalcWeights(vehicles, ...
+            num_int, num_w, num_lanes, wait_thresh, packets, t, yellow_time, stop_time, alpha, min_time, W, B);
+    end
+    if strcmp(policy, 'tapioca')
         if ~isempty(fieldnames(vehicles))
             counts = CalcCounts(vehicles, num_int, num_w, num_lanes);
         end
     end
+    tic_times(1,i) = toc;
+    tic;
     
     for k = 1:length(ints)
         
@@ -200,7 +208,6 @@ for t = delta_t*(1:num_iter)
                         ints(k).lights = 'rrryrrry';
                     end
                 end
-                hnd = DrawLights(ints, hnd);
             end
             
         elseif strcmp(policy, 'custom')
@@ -256,7 +263,6 @@ for t = delta_t*(1:num_iter)
                     if ~isempty(inds)
                         ints(k).lights(inds) = 'r';
                         ints(k).lights(to_switch_to(k,:)) = 'g';
-                        % hnd = DrawLights(ints, hnd);
                     end
                 % if switching is an option
                 else
@@ -297,7 +303,7 @@ for t = delta_t*(1:num_iter)
                         new_phase = setdiff(neighbor_phases(1,:),current_phase);
                         % fprintf('t = %f, int = %d, current_phase = %d, new_phase = %d\n', t, k, phases(current_phase,:), new_phase)
                         % fprintf('neighbor_phase_weight = %f, current_weight = %f\n', neighbor_weights(1), current_weight)
-                        min_times = calcMinTimes(new_phase, num_lanes, queue_lengths, k, ...
+                        min_times = CalcMinTimes(new_phase, num_lanes, queue_lengths, k, ...
                             w_ind, min_times, min_time, packets, yellow_time, t);
                         to_switch_to(k,:) = new_phase;
                         switch_time(k) = 0;
@@ -312,7 +318,7 @@ for t = delta_t*(1:num_iter)
                         new_phase = setdiff(neighbor_phases(2,:),current_phase);
                         % fprintf('t = %f, int = %d, current_phase = %d, new_phase = %d\n', t, k, phases(current_phase,:), new_phase)
                         % fprintf('neighbor_phase_weight = %f, current_weight = %f\n', neighbor_weights(2), current_weight)
-                        min_times = calcMinTimes(new_phase, num_lanes, queue_lengths, k, ...
+                        min_times = CalcMinTimes(new_phase, num_lanes, queue_lengths, k, ...
                             w_ind, min_times, min_time, packets, yellow_time, t);
                         to_switch_to(k,:) = new_phase;
                         switch_time(k) = 0;
@@ -322,12 +328,14 @@ for t = delta_t*(1:num_iter)
                             switch_log2 = [switch_log2, t];
                         end
                         ints(k).lights(setdiff(current_phase,neighbor_phases(2,:))) = 'y';
-                        % hnd = DrawLights(ints, hnd);
                     end
                 end
             end
             
         elseif strcmp(policy, 'tapioca')
+            
+            active_phase_inds = [strfind(ints(k).lights, 'g'), strfind(ints(k).lights, 'y')];
+            time_of_phase(k,active_phase_inds) = t;
             
             if all_straight
                 % Not yet implemented
@@ -366,38 +374,38 @@ for t = delta_t*(1:num_iter)
                     % Term 3
                     out_counts = zeros(1,num_w);
                     if k == 2
-                        out_counts(1,2) = sum(counts(1, [7 8]));
-                        out_counts(1,7) = sum(counts(1, [7 8]));
+                        out_counts(1,4) = sum(counts(1, [3 4]));
+                        out_counts(1,5) = sum(counts(1, [3 4]));
                     elseif k == 1
-                        out_counts(1,2) = sum(counts(2, [3 4]));
-                        out_counts(1,7) = sum(counts(2, [3 4]));
+                        out_counts(1,1) = sum(counts(2, [7 8]));
+                        out_counts(1,8) = sum(counts(2, [7 8]));
                     end
                     GE = norm_counts(k,:) - out_counts;
                     
                     % Term 4
                     R = zeros(1,num_w);
                     if k == 2
-                        D_score = [LS(1,1) + LS(1,4)
-                            LS(1,3) + LS(1,6)
-                            LS(1,5) + LS(1,8)
-                            LS(1,2) + LS(1,7)];
+                        D_score = [LS(1,6) + LS(1,7)
+                            LS(1,1) + LS(1,8)
+                            LS(1,2) + LS(1,3)
+                            LS(1,4) + LS(1,5)];
                         [~, sorted_inds] = sort(D_score);
-                        R([7 8]) = find(sorted_inds == 4) / 10;
+                        R([7 8]) = find(sorted_inds == 2) / 10;
                     elseif k == 1
-                        D_score = [LS(2,1) + LS(2,4)
-                            LS(2,3) + LS(2,6)
-                            LS(2,5) + LS(2,8)
-                            LS(2,2) + LS(2,7)];
+                        D_score = [LS(2,6) + LS(2,7)
+                            LS(2,1) + LS(2,8)
+                            LS(2,2) + LS(2,3)
+                            LS(2,4) + LS(2,5)];
                         [~, sorted_inds] = sort(D_score);
-                        R([3 4]) = find(sorted_inds == 2) / 10;
+                        R([3 4]) = find(sorted_inds == 4) / 10;
                     end
-                    score = 1 * LS + 1 * GE + 1 * R;
+                    score(k,:) = 1 * LS(k,:) + 1 * GE + 1 * R;
                     
                     phase_scores = zeros(num_w,1);
                     for tmp = 1:num_w
-                        phase_scores(tmp) = sum(score(phases(tmp,:)));
+                        phase_scores(tmp) = sum(score(k,phases(tmp,:)));
                     end
-                                        
+                    
                     [max_score, max_ind] = max(phase_scores);
                     new_phase = phases(max_ind,:);
                     
@@ -429,27 +437,26 @@ for t = delta_t*(1:num_iter)
         % if switching to enable flow toward another intersection, create packet
         % packet contains source intersection, number of vehicles, and time of arrival
         if strcmp(policy, 'custom')
-            if k == 1 && abs(switch_time(k)-yellow_time) <= .001 && ismember(1, to_switch_to(k,:)) && queue_lengths(k,1,3,w_ind-1) > 0
-                packets = [packets; k, min([min_veh,queue_lengths(k,1,3,w_ind-1)]), t + T];
-            elseif k == 1 && abs(switch_time(k)-yellow_time) <= .001 && ismember(6, to_switch_to(k,:)) && sum(queue_lengths(k,3,1,w_ind-1)) > 0
-                packets = [packets; k, min([min_veh,sum(queue_lengths(k,3,1,w_ind-1))]), t + T];
-            elseif k == 1 && abs(switch_time(k)-yellow_time) <= .001 && ismember(8, to_switch_to(k,:)) && sum(queue_lengths(k,4,2,w_ind-1)) > 0
-                packets = [packets; k, min([min_veh,sum(queue_lengths(k,4,2,w_ind-1))]), t + T];
+            if k == 1 && abs(switch_time(k)-yellow_time) <= .001 && ismember(1, to_switch_to(k,:)) && queue_lengths(k,1,3,w_ind) > 0
+                packets = [packets; k, min([min_veh,queue_lengths(k,1,3,w_ind)]), t + T];
+            elseif k == 1 && abs(switch_time(k)-yellow_time) <= .001 && ismember(6, to_switch_to(k,:)) && sum(queue_lengths(k,3,1,w_ind)) > 0
+                packets = [packets; k, min([min_veh,sum(queue_lengths(k,3,1,w_ind))]), t + T];
+            elseif k == 1 && abs(switch_time(k)-yellow_time) <= .001 && ismember(8, to_switch_to(k,:)) && sum(queue_lengths(k,4,2,w_ind)) > 0
+                packets = [packets; k, min([min_veh,sum(queue_lengths(k,4,2,w_ind))]), t + T];
             end
-            if k == 2 && abs(switch_time(k)-yellow_time) <= .001 && ismember(2,to_switch_to(k,:)) && sum(queue_lengths(k,1,1,w_ind-1)) > 0
-                packets = [packets; k, min([min_veh,sum(queue_lengths(k,1,1,w_ind-1))]), t + T];
-            elseif k == 2 && abs(switch_time(k)-yellow_time) <= .001 && ismember(4,to_switch_to(k,:)) && sum(queue_lengths(k,2,2,w_ind-1)) > 0
-                packets = [packets; k, min([min_veh,sum(queue_lengths(k,2,2,w_ind-1))]), t + T];
-            elseif k == 2 && abs(switch_time(k)-yellow_time) <= .001 && ismember(5,to_switch_to(k,:)) && queue_lengths(k,3,3,w_ind-1) > 0
-                packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind-1)]), t + T];
+            if k == 2 && abs(switch_time(k)-yellow_time) <= .001 && ismember(2,to_switch_to(k,:)) && sum(queue_lengths(k,1,1,w_ind)) > 0
+                packets = [packets; k, min([min_veh,sum(queue_lengths(k,1,1,w_ind))]), t + T];
+            elseif k == 2 && abs(switch_time(k)-yellow_time) <= .001 && ismember(4,to_switch_to(k,:)) && sum(queue_lengths(k,2,2,w_ind)) > 0
+                packets = [packets; k, min([min_veh,sum(queue_lengths(k,2,2,w_ind))]), t + T];
+            elseif k == 2 && abs(switch_time(k)-yellow_time) <= .001 && ismember(5,to_switch_to(k,:)) && queue_lengths(k,3,3,w_ind) > 0
+                packets = [packets; k, min([min_veh,queue_lengths(k,3,3,w_ind)]), t + T];
             end
         elseif strcmp(policy, 'tapioca')
             packets = [];
         end
-        
-        active_phase_inds = [strfind('g', ints(k).lights), strfind('y', ints(k).lights)];
-        time_of_phase(active_phase_inds,k) = t;
     end
+    tic_times(2,i) = toc;
+    tic;
     
     if mod(t, 1) == 0
         % fprintf('Int1 = %s\n', ints(1).lights)
@@ -458,12 +465,20 @@ for t = delta_t*(1:num_iter)
     
     title_str = sprintf('Time = %.2f', t);
     title(title_str)
-    % disp(length(text_str))
-    % disp(length(['Int1=', sprintf('%7.1f',weights(1,w_ind,:))]))
     
     % Right now, the textboxes don't get deleted, a new one gets put on top
     if make_textbox
-        text_box = uicontrol('style','text');
+        if first
+            text_box = uicontrol('style','text');
+            set(text_box,'Units','characters')
+            if num_int == 1
+                set(text_box,'Position', [25 15 40 6])
+            else
+                set(text_box,'Position', [48 15 40 6])
+            end
+            set(text_box, 'FontSize', 7)
+            first = false;
+        end
         if strcmp(policy, 'custom')
             text_str = ['Custom Policy       ', ints(1).lights, '                   ', ints(2).lights, '      '];
         elseif strcmp(policy, 'cycle')
@@ -480,34 +495,36 @@ for t = delta_t*(1:num_iter)
                     '  vertical weight2 = ', sprintf('%8.2f',weights(2,w_ind,1));
                     'horizontal weight2 = ', sprintf('%8.2f',weights(2,w_ind,2))];
             end
-            set(text_box,'String',text_str)
-            set(text_box,'Units','characters')
-            set(text_box,'Position', [70 15 50 8])
         else
-            text_str = [text_str; 'Int1=', sprintf('%7.1f',weights(1,w_ind,:)+added_weights(1,w_ind,:))];
-            if length(ints) == 2
-                text_str = [text_str; 'Int2=', sprintf('%7.1f',weights(2,w_ind,:)+added_weights(2,w_ind,:))];
-            end
-            set(text_box,'String',text_str)
-            set(text_box,'Units','characters')
-            if num_int == 1
-                set(text_box,'Position', [25 15 60 8])
+            if strcmp(policy, 'tapioca')
+                text_str = [text_str; 'Int1=', sprintf('%7.1f',score(1,:))];
+                if length(ints) == 2
+                    text_str = [text_str; 'Int2=', sprintf('%7.1f',score(2,:))];
+                end
             else
-                set(text_box,'Position', [63 15 60 8])
+                text_str = [text_str; 'Int1=', sprintf('%7.1f',weights(1,w_ind,:)+added_weights(1,w_ind,:))];
+                if length(ints) == 2
+                    text_str = [text_str; 'Int2=', sprintf('%7.1f',weights(2,w_ind,:)+added_weights(2,w_ind,:))];
+                end
             end
+        set(text_box,'String',text_str)
         end
     end
+    tic_times(3,i) = toc;
+    tic;
     
     % if vehicle is nonempty, run dynamics, update wait, and draw vehicle
     if ~isempty(fieldnames(vehicles))
         vehicles = RunDynamics(ints, vehicles, straight_list, turn_radius, turn_length, wait_thresh, t, delta_t);
         for v = 1:length(vehicles)
-            if strcmp(policy, 'tapioca')
-                queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) = ...
-                  queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) + 1;
-            elseif vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
-                queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) = ...
-                  queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind) + 1;
+            if (vehicles(v).lane <= num_lanes)
+                if strcmp(policy, 'tapioca')
+                    queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind+1) = ...
+                        queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind+1) + 1;
+                elseif vehicles(v).velocity <= wait_thresh*vehicles(v).max_velocity
+                    queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind+1) = ...
+                        queue_lengths(vehicles(v).int, vehicles(v).road, abs(vehicles(v).lane), w_ind+1) + 1;
+                end
             end
             if isfield(vehicles, 'figure')
                 delete(vehicles(v).figure);
@@ -517,12 +534,16 @@ for t = delta_t*(1:num_iter)
             end
         end
     end
-    % disp(reshape(queue_lengths(:, :, :, w_ind),1,24))
+    tic_times(4,i) = toc;
+    tic;
+    
     if make_video
         pause(0.03)
         current_frame = getframe(gcf);
         writeVideo(vid_obj, current_frame);
     end
+    tic_times(5,i) = toc;
+    tic;
     
     % Now spawn new vehicles
     [ints_temp,roads_temp,lanes_temp] = SpawnVehicles(spawn_rate, num_int, num_roads, num_lanes, t, delta_t, spawn_type, main_road);
@@ -545,10 +566,7 @@ for t = delta_t*(1:num_iter)
             end
         end
     end
-    
-%     if mod(t, delta_t*num_iter/10) == 0
-%         fprintf('Time = %f\n', t);
-%     end
+    tic_times(6,i) = toc;
     
     switch_time = switch_time + delta_t;
     w_ind = w_ind + 1;
@@ -564,21 +582,27 @@ total_time = 0;
 total_wait_time = 0;
 total_weighted_wait_time = 0;
 for v = 1:length(vehicles)
-    time = vehicles(v).time_leave - vehicles(v).time_enter;
-    if time > 0
-        total_time = total_time + time;
+    if vehicles(v).time_leave > 0
+        total_time = total_time + vehicles(v).time_leave - vehicles(v).time_enter;
+    else
+        total_time = total_time + t - vehicles(v).time_enter;
     end
     total_wait_time = total_wait_time + sum(vehicles(v).wait);
     total_weighted_wait_time = total_weighted_wait_time + sum(W(vehicles(v).wait));
 end
 
 if write_file
-    fid = fopen('alphas.txt', 'a');
-    fprintf(fid, '%f %f %f %f\n', alpha, total_time, total_wait_time, total_weighted_wait_time);
+    % fid = fopen('alphas.txt', 'a');
+    % fprintf(fid, '%f %f %f %f\n', alpha, total_time, total_wait_time, total_weighted_wait_time);
+    % fclose(fid);
+    
+    fid = fopen('times.txt', 'a');
+    fprintf(fid, '%f %f %f\n', total_time, total_wait_time, total_weighted_wait_time);
     fclose(fid);
 end
 
 if make_plots
+    y_label = 'Weighted wait-time (sec*sec)';
     figure
     hold on
     for z = 1:num_int
@@ -591,13 +615,13 @@ if make_plots
         plot(switch_log2, zeros(length(switch_log2),1), '*')
     end
     xlabel('Time (s)')
-    ylabel('Weighted wait-time (sec*sec)')
+    ylabel(y_label)
     title('Cost of each phase')
     ax = gca;
     set(ax,'FontName','Times')
     set(ax,'FontSize',14)
-    saveas(gcf, 'weight_plot_custom_alpha40_spawn15_mainrd', 'png')
-    saveas(gcf, 'weight_plot_custom_alpha40_spawn15_mainrd', 'fig')
+%     saveas(gcf, 'weight_plot_custom_alpha40_spawn15_mainrd', 'png')
+%     saveas(gcf, 'weight_plot_custom_alpha40_spawn15_mainrd', 'fig')
     
     figure
     hold on
@@ -625,6 +649,12 @@ if make_plots
     set(ax,'FontSize',14)
     % saveas(gcf, 'queue_plot', 'fig')
     % saveas(gcf, 'queue_plot', 'png')
+    
+    figure
+    plot(tic_times')
+    xlabel('Iteration number')
+    ylabel('Process Time')
+    legend('weights', 'policy', 'textbox', 'dynamics', 'video', 'spawns')
 end
 
 % TO DO LIST
